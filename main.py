@@ -98,7 +98,7 @@ async def choose_action():
 async def main():
     create_files()
 
-    await check_for_updates(repo_name="pi_squared", repo_private=True)
+    await check_for_updates(repo_name=PROJECT)
     await choose_action()
 
 if __name__ == '__main__':

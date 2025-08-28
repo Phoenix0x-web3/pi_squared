@@ -60,46 +60,36 @@ def get_latest_commit_from_git(repo_path: str = ".", remote_name: str = "origin"
         logger.error(f"Error fetching from Git: {e}. Ensure SSH/HTTPS credentials are configured for private repositories.")
         return None, None, None
 
-async def get_latest_commit_from_api(repo_owner: str, repo_name: str) -> Tuple[Optional[str], Optional[str], Optional[str]]:
-    """
-    Fetches the latest commit information from a GitHub repository using the Browser class.
-
-    Args:
-        repo_owner: The owner of the repository.
-        repo_name: The name of the repository.
-
-    Returns:
-        Tuple containing (commit_hash, commit_date, commit_message) or (None, None, None) on error.
-    """
+async def get_latest_commit_from_api(repo_owner: str, repo_name: str) -> Tuple[Optional[str], Optional[str], Optional[str], bool]:
     headers = {"Accept": "application/vnd.github.v3+json"}
     browser = Browser()
     try:
         repo_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}"
         response = await browser.get(url=repo_url, headers=headers)
+
+        if response.status_code == 404:
+            return None, None, None, True
+
         if response.status_code != 200:
             logger.error(f"Failed to fetch repository info: HTTP {response.status_code}")
-            if response.status_code == 403:
-                logger.warning("Access to private repository may require authentication.")
-            return None, None, None
+            return None, None, None, False
         data = response.json()
         default_branch = data.get("default_branch", "main")
-
         commit_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/commits/{default_branch}"
         response = await browser.get(url=commit_url, headers=headers)
         if response.status_code != 200:
             logger.error(f"Failed to fetch commit: HTTP {response.status_code}")
-            if response.status_code == 403:
-                logger.warning("Access to private repository may require authentication.")
-            return None, None, None
+            return None, None, None, False
         data = response.json()
         return (
             data.get("sha", "")[:7],
             data.get("commit", {}).get("author", {}).get("date"),
-            data.get("commit", {}).get("message", "").strip()
+            data.get("commit", {}).get("message", "").strip(),
+            False
         )
     except Exception as e:
         logger.error(f"Error fetching commit from API: {e}")
-        return None, None, None
+        return None, None, None, False
 
 def read_local_version(version_file: str = "files/version.json") -> Tuple[Optional[str], Optional[str]]:
     """
@@ -177,7 +167,6 @@ async def check_for_updates(
     version_file: str = "files/version.json",
     repo_path: str = ".",
     remote_name: str = "origin",
-    repo_private: bool = False
 ) -> None:
     """
     Checks for updates using gitpython if a Git repo exists, otherwise falls back to GitHub API via Browser.
@@ -205,11 +194,12 @@ async def check_for_updates(
     local_hash = None
     local_date = None
 
+    latest_hash, latest_date, latest_message, is_private = await get_latest_commit_from_api(repo_owner, repo_name)
     if is_git_repo:
         logger.debug("Detected Git repository. Fetching local HEAD commit...")
         local_hash, local_date, _ = get_local_commit(repo_path)
         logger.debug("Fetching updates from remote...")
-        if repo_private:
+        if is_private:
             latest_hash, latest_date, latest_message = get_latest_commit_from_git(repo_path, remote_name)
             if not latest_hash:
                 logger.warning("Warning: Failed to fetch updates via Git. Ensure SSH/HTTPS credentials are configured for private repositories.")
@@ -220,9 +210,6 @@ async def check_for_updates(
                 return
     else:
         logger.debug("No Git repository detected (possibly downloaded as ZIP). Using GitHub API for update check.")
-
-    if not latest_hash or not latest_date:
-        latest_hash, latest_date, latest_message = await get_latest_commit_from_api(repo_owner, repo_name)
 
     if not latest_hash or not latest_date:
         return
