@@ -6,14 +6,15 @@ from data.settings import Settings
 
 
 class QuestsClient(BaseHttpClient):
-    
-    async def complete_quiz_quests(self):
+
+    async def complete_quests(self):
         uncompleted_tasks = await self.get_uncompleted_tasks()
         
         for task in uncompleted_tasks:
-            if task.get('taskName') == 'quiz':
-                task_id = task['id']
-                task_title = task['title']
+            task_id = task['id']
+            task_title = task['title']
+            
+            if task.get('taskName') == 'quiz' and task.get('isEnabled', False):
                 arguments = task.get('arguments', [])
                 correct_answer = None
                 
@@ -23,22 +24,30 @@ class QuestsClient(BaseHttpClient):
                         break
                 
                 if correct_answer:
-                    task = await self.do_task_request(task_guid=task_id, extra_arguments=[correct_answer])
-                    if task:
+                    task_result = await self.do_task_request(task_guid=task_id, extra_arguments=[correct_answer])
+                    if task_result:
                         logger.success(f"{self.user} Completed quiz task {task_title} with answer: {correct_answer}")
-                        random_sleep = random.randint(Settings().random_pause_between_actions_min, Settings().random_pause_between_actions_max)
-                        logger.info(f"{self.user} {random_sleep} sleep seconds before next quest")
-                        await asyncio.sleep(random_sleep)
                     else:
                         logger.error(f"{self.user} can't complete {task_title} with answer: {correct_answer}")
-                        random_sleep = random.randint(Settings().random_pause_between_actions_min, Settings().random_pause_between_actions_max)
-                        logger.info(f"{self.user} {random_sleep} sleep seconds before next quest")
-                        await asyncio.sleep(random_sleep)
                 else:
                     logger.debug(f"No correct answer found for quiz task {task_id}")
                     continue
-        logger.success(f"{self.user} completed or already completed all quiz quests")
-        return True
+                    
+            elif task.get('taskName') == 'click_link' and task.get('isEnabled', False):
+                task_result = await self.do_task_request(task_guid=task_id)
+                if task_result:
+                    logger.success(f"{self.user} Completed click_link task {task_title}")
+                else:
+                    logger.error(f"{self.user} can't complete click_link task {task_title}")
+            else:
+                continue
+            
+            random_sleep = random.randint(Settings().random_pause_between_actions_min, Settings().random_pause_between_actions_max)
+            logger.info(f"{self.user} {random_sleep} sleep seconds before next quest")
+            await asyncio.sleep(random_sleep)
+        
+        logger.success(f"{self.user} completed or already completed all quiz and click_link quests")
+        return True   
 
 
     async def do_task_request(self, task_guid: str, extra_arguments: list = []):

@@ -10,7 +10,7 @@ class AuthClient(BaseHttpClient):
     BASE_LINK = "https://pisquared-api.pulsar.money/api/v1/"
     def __init__(self, user: Wallet):
         super().__init__(user)
-        self.mail_waiter = Mail(self.user.email_data)
+        self.mail_waiter = None
 
     @async_retry()
     async def login(self):
@@ -19,6 +19,7 @@ class AuthClient(BaseHttpClient):
         if session:
             logger.success(f"{self.user} success authorizate")
             return session
+        self.mail_waiter = Mail(self.user.email_data)
         if not self.mail_waiter.authed:
             return False
 

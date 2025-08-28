@@ -22,6 +22,6 @@ class Controller:
     async def complete_quests(self):
         session = await self.register()
         if session:
-            await self.quests_client.complete_quiz_quests()
+            await self.quests_client.complete_quests()
 
 
