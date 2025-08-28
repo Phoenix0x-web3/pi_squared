@@ -66,14 +66,25 @@ async def activity(action: int):
             ]
 
     if action == 1:
-        await execute(wallets, register)
+        await execute(wallets, run_all_tasks)
 
     if action == 2:
-        await execute(wallets, complete_quests)
+        await execute(wallets, register)
 
     if action == 3:
+        await execute(wallets, complete_quests)
+
+    if action == 4:
         wallets = [wallet for wallet in wallets if wallet.bearer_token]
         await execute(wallets, run_clicker)
+
+async def run_all_tasks(wallet):
+    
+    await random_sleep_before_start(wallet=wallet)
+    
+    controller = Controller(wallet=wallet)
+
+    c = await controller.run_all_tasks()
 
 async def register(wallet):
     
@@ -96,7 +107,7 @@ async def run_clicker(wallet):
 
     controller = Controller(wallet=wallet)
     try:
-        c = await controller.clicker_controller()
+        c = await controller.complete_games()
         logger.success(c)
     except Exception as e:
         logger.exception(e)

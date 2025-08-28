@@ -44,10 +44,16 @@ random_pause_start_wallet:
   min: 0
   max: 60
 
+#Games
+games:
+  min: 30
+  max: 40
+
 #Clicks: !Maximum is 170
 clicks:
   min: 60
   max: 154
+
 
 # Telegram Bot ID for notifications
 tg_bot_id: ""

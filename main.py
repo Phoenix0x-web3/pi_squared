@@ -16,6 +16,7 @@ console = Console()
 PROJECT = 'Pi Squared'
 
 PROJECT_ACTIONS =   [
+                    "Run All Tasks",
                     "Start Register",
                     "Complete Quests",
                     "Clicker Controller",
@@ -73,14 +74,17 @@ async def choose_action():
         console.print(f"[bold blue]Starting Import Wallets to DB[/bold blue]")
         await Export.wallets_to_txt()
 
-    elif action == "Start Register":
+    elif action == "Run All Tasks":
         await activity(action=1)
 
-    elif action == "Complete Quests":
+    elif action == "Start Register":
         await activity(action=2)
 
-    elif action == "Clicker Controller":
+    elif action == "Complete Quests":
         await activity(action=3)
+
+    elif action == "Clicker Controller":
+        await activity(action=4)
 
     elif action == "Reset files Folder":
         console.print("This action will delete the files folder and reset it.") 
