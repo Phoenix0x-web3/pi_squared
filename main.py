@@ -18,6 +18,7 @@ PROJECT = 'Pi Squared'
 PROJECT_ACTIONS =   [
                     "Start Register",
                     "Complete Quests",
+                    "Clicker Controller",
                     "Back"
                     ]
 
@@ -77,6 +78,9 @@ async def choose_action():
 
     elif action == "Complete Quests":
         await activity(action=2)
+
+    elif action == "Clicker Controller":
+        await activity(action=3)
 
     elif action == "Reset files Folder":
         console.print("This action will delete the files folder and reset it.") 

@@ -67,6 +67,9 @@ async def activity(action: int):
     if action == 2:
         await execute(wallets, complete_quests)
 
+    if action == 3:
+        await execute(wallets, run_clicker)
+
 async def register(wallet):
     
     await random_sleep_before_start(wallet=wallet)
@@ -82,3 +85,13 @@ async def complete_quests(wallet):
     controller = Controller(wallet=wallet)
 
     c = await controller.complete_quests()
+
+async def run_clicker(wallet):
+    await random_sleep_before_start(wallet=wallet)
+
+    controller = Controller(wallet=wallet)
+    try:
+        c = await controller.clicker_controller()
+        logger.success(c)
+    except Exception as e:
+        logger.exception(e)
