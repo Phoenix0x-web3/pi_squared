@@ -3,9 +3,9 @@ import random
 from loguru import logger
 
 from data.settings import Settings
-from modules.game.clicker import PiClicker
 from modules.tasks.quests_client import QuestsClient
 from modules.tasks.authorization import AuthClient
+from modules.tasks.clicker_client import ClickerClient
 from utils.db_api.models import Wallet
 from utils.logs_decorator import controller_log
 
@@ -18,43 +18,26 @@ class Controller:
         
         self.auth_client = AuthClient(user=self.wallet)
         self.quests_client = QuestsClient(user=self.wallet)
-        self.pi_clicker = PiClicker(wallet=wallet)
+        self.clicker_client = ClickerClient(wallet=self.wallet)
 
 
     async def register(self):
         session = await self.auth_client.login()
-        if session:
-            return True
-        return False
+        return session
     
     async def complete_quests(self):
         session = await self.register()
         if session:
             await self.quests_client.complete_quests()
-            
-    @controller_log('Pi Clicker')
-    async def clicker_controller(self):
 
-        box_size_map = [
-            #{'BASE_X': 442, 'BASE_Y': 543, 'CONTAINER_PX': 276},
-            #{'BASE_X': 415, 'BASE_Y': 410, 'CONTAINER_PX': 276},
-            {'BASE_X': 895, 'BASE_Y': 269, 'CONTAINER_PX': 288},
-            {'BASE_X': 557, 'BASE_Y': 161, 'CONTAINER_PX': 288},
-            {'BASE_X': 557, 'BASE_Y': 224, 'CONTAINER_PX': 288},
-            {'BASE_X': 981, 'BASE_Y': 345, 'CONTAINER_PX': 288},
-            #{'BASE_X': 514, 'BASE_Y': 358, 'CONTAINER_PX': 276},
-        ]
+    async def complete_games(self):
+        await self.clicker_client.handle_clicker(total_play=total_play, best_score=best_score)
 
-        settings = Settings()
-
-        clicks = random.randint(settings.clicks_min, settings.clicks_max)
-        box = random.choice(box_size_map)
-        logger.info(f"{self.wallet} | {self.__controller__} | trying to click {clicks} times in a session")
-
-        return await self.pi_clicker.run_session_with_engine(
-            base_x=box['BASE_X'],
-            base_y=box['BASE_Y'],
-            clicks=clicks,
-            container_px=box['CONTAINER_PX'],
-            show_viz=False,
-        )
+    async def run_all_tasks(self):
+        session = await self.register()
+        if not session:
+            return False
+        await self.quests_client.complete_quests(random_stop=True)
+        total_play, best_score = await self.quests_client.get_game_stats()
+        await self.clicker_client.handle_clicker(total_play=total_play, best_score=best_score)
+        await self.quests_client.complete_quests(random_stop=True)

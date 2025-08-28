@@ -39,6 +39,8 @@ class Settings(Singleton):
         self.imap_port = json_data.get("imap_port", "")
         self.clicks_min = json_data.get("clicks", {}).get("min")
         self.clicks_max = json_data.get("clicks", {}).get("max")
+        self.games_min = json_data.get("games", {}).get("min")
+        self.games_max = json_data.get("games", {}).get("max")
 
 
 # Configure the logger based on the settings
