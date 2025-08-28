@@ -69,6 +69,7 @@ class BaseHttpClient:
         timeout: int = 30,
         retries: int = 5,
         allow_redirects: bool = True,
+        use_refresh_token: bool = True
     ) -> Tuple[bool, Union[Dict, str]]:
         """
         Perform HTTP request with automatic captcha and proxy error handling
@@ -87,6 +88,13 @@ class BaseHttpClient:
         Returns:
             (bool, data): Success status and response data
         """
+        if self.user.bearer_token:
+            headers = {
+                "Authorization": "Bearer " + self.user.bearer_token,
+            }
+        if use_refresh_token and self.user.refresh_token and headers:
+            headers["X-Refresh-Token"] = self.user.refresh_token
+
         base_headers = await self.get_headers(headers)
 
         # Set up request parameters
