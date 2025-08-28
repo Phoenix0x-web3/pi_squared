@@ -47,7 +47,6 @@ class QuestsClient(BaseHttpClient):
             'extraArguments': extra_arguments
         }
         success, data = await self.request(url="https://pisquared-api.pulsar.money/api/v1/pulsar/challenges/do-task", method="POST", json_data=json_data, use_refresh_token=False)
-        logger.debug(data)
         if success and isinstance(data, dict) and data['status']:
             return True
         return False
