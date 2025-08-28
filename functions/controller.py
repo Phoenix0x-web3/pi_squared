@@ -49,6 +49,7 @@ class Controller:
 
         clicks = random.randint(settings.clicks_min, settings.clicks_max)
         box = random.choice(box_size_map)
+
         logger.info(f"{self.wallet} | {self.__controller__} | trying to click {clicks} times in a session")
 
         return await self.pi_clicker.run_session_with_engine(
