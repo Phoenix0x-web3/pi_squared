@@ -19,10 +19,16 @@ class Controller:
         self.pi_clicker = PiClicker(wallet=wallet)
 
     async def register(self):
-        auth_client = AuthClient(user=self.wallet)
-        await auth_client.login()
-        return
-
+        session = await self.auth_client.login()
+        if session:
+            return True
+        return False
+    
+    async def complete_quests(self):
+        session = await self.register()
+        if session:
+            await self.quests_client.complete_quests()
+            
     @controller_log('Pi Clicker')
     async def clicker_controller(self):
 
@@ -39,7 +45,6 @@ class Controller:
         settings = Settings()
 
         clicks = random.randint(settings.clicks_min, settings.clicks_max)
-
         box = random.choice(box_size_map)
         logger.info(f"{self.wallet} | {self.__controller__} | trying to click {clicks} times in a session")
 
