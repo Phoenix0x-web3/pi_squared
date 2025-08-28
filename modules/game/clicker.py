@@ -168,7 +168,7 @@ class PiClicker:
             finally:
                 await asyncio.sleep(0)
 
-    @async_retry()
+    #@async_retry()
     async def _click_via(self, browser: Browser, session_id: str, item: Dict[str, Any]):
         url = f"{self.BASE}/game-sessions/{session_id}/click"
         json_data = {
