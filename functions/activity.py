@@ -75,6 +75,7 @@ async def activity(action: int):
         await execute(wallets, complete_quests)
 
     if action == 4:
+        wallets = [wallet for wallet in wallets if wallet.bearer_token]
         await execute(wallets, run_clicker)
 
 async def run_all_tasks(wallet):

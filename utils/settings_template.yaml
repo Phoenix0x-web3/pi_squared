@@ -49,10 +49,10 @@ games:
   min: 30
   max: 40
 
-#Clicks: !Maximum is 169
+#Clicks: !Maximum is 170
 clicks:
-  min: 10
-  max: 169
+  min: 60
+  max: 154
 
 
 # Telegram Bot ID for notifications
