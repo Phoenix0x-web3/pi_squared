@@ -14,8 +14,8 @@ class QuestsClient(BaseHttpClient):
         random.shuffle(uncompleted_tasks)
         total_play, best_score = await self.get_game_stats()
         random_quest_complete = random.randint(1, len(uncompleted_tasks))
-        i = 0
-        for task in uncompleted_tasks:
+  
+        for i, task in enumerate(uncompleted_tasks):
             task_id = task['id']
             task_title = task['title']
             
@@ -74,13 +74,13 @@ class QuestsClient(BaseHttpClient):
                     continue
             else:
                 continue
-            i += 1
+      
             if random_stop:
                 if i > random_quest_complete:
                     logger.info(f"{self.user} complete {i} quests and random stop. Complete the rest after the games")
                     return True
             random_sleep = random.randint(Settings().random_pause_between_actions_min, Settings().random_pause_between_actions_max)
-            logger.info(f"{self.user} {random_sleep} sleep seconds before next quest")
+            logger.debug(f"{self.user} {random_sleep} sleep seconds before next quest")
             await asyncio.sleep(random_sleep)
         
         logger.success(f"{self.user} completed or already completed all available quests")
@@ -134,8 +134,21 @@ class QuestsClient(BaseHttpClient):
             raise Exception("Can't get session")
         user_id = session["user"]["id"]
         success, data = await self.request(url=f"{self.BASE_LINK}game-statistics/user/{user_id}",method="GET", use_refresh_token=False)
-        if success and isinstance(data,dict):
-            return data["totalGamesPlayed"], data["bestScore"]
+        
+        if not success:
+            return 0, 0
+
+        # New account / empty payload
+        if not data:
+            return 0, 0
+
+        if isinstance(data, dict):
+            total = int(data.get("totalGamesPlayed") or 0)
+            best = int(data.get("bestScore") or 0)
+            return total, best
+
+ 
+        return 0, 0
 
     async def get_session(self):
         success, data = await self.request(url=f"{self.BASE_LINK}auth/session", method="GET")

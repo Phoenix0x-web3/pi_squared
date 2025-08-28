@@ -35,23 +35,33 @@ class ClickerClient(PiClicker):
             show_viz=False,
         )
 
-    async def handle_clicker(self, total_play: int, best_score: int):
-        if total_play >=30 and best_score >= 105:
+    async def handle_clicker(self, total_play: int, best_score: int, number_of_games : int = None):
+        
+        if total_play >= 30 and best_score >= 105:
             logger.success(f"{self.wallet} already played {total_play} games and have {best_score} best score")
             return True
-        random_total_play = random.randint(Settings().games_min, Settings().games_max)
-        random_total_play -= total_play
-        if random_total_play < 0:
-            logger.success(f"{self.wallet} already played {total_play} games")
-            return True
+
+        if number_of_games:
+            games_to_play = number_of_games
+        else:
+            random_total_play = random.randint(Settings().games_min, Settings().games_max)
+            random_total_play -= total_play
+            games_to_play = random_total_play
+        
+            if games_to_play <= 0:
+                logger.success(f"{self.wallet} already played {total_play} games")
+                return True 
+            
         clicks = None
-        for _ in range(random_total_play):
+        for _ in range(games_to_play):
             try:
                 if best_score < 105:
                     clicks = random.randint(106, 150)
                     best_score = clicks
                 clicks_result = await self.clicker_controller(clicks=clicks)
                 logger.success(clicks_result)
+                random_sleep = random.randint(Settings().random_pause_between_actions_min, Settings().random_pause_between_actions_max)
+                await asyncio.sleep(random_sleep)
             except Exception:
                 logger.error(f"{self.wallet} can't play game continue")
                 await asyncio.sleep(5)
