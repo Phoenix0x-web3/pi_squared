@@ -3,7 +3,7 @@ from imaplib import IMAP4_SSL, IMAP4
 from bs4 import BeautifulSoup
 from time import time
 from loguru import logger
-from email import message_from_bytes
+from email import message_from_bytes, utils
 from typing import Union, List
 
 from data.settings import Settings
@@ -43,55 +43,87 @@ class Mail:
                 raise Exception(f"Email login failed for {self.mail_login}: {error_msg}")
 
     async def find_mail(
-        self,
-        msg_from: Union[str, List[str]],
-        subject: str | None = None,
-        part_subject: str | None = None,
+            self,
+            msg_from: Union[str, List[str]],
+            subject: str | None = None,
+            part_subject: str | None = None,
     ) -> BeautifulSoup:
-        """Search for an email matching the criteria asynchronously."""
-        if isinstance(msg_from, str):
-            msg_from = [msg_from]
+            """Search INBOX and Spam, collect matching emails, sort by Date, return newest."""
+            if isinstance(msg_from, str):
+                msg_from = [msg_from]
 
-        self._login()  # Ensure logged in before searching
-        start_time = time()
-        first = True
-        if not self.imap:
-            raise Exception("IMAP connection not established")
+            self._login()
+            start_time = time()
+            first = True
+            if not self.imap:
+                raise Exception("IMAP connection not established")
 
-        while time() < start_time + 180:
-            try:
-                await asyncio.sleep(5)
-                _, mailbox_data = self.imap.select('INBOX')
-                last_mail_id = mailbox_data[0]
-                if isinstance(last_mail_id, int):
-                    last_mail_id = last_mail_id.decode()
+            folders = ["INBOX", "Spam"]
 
-                if last_mail_id == "0":
-                    msg = None
-                else:
-                    _, data = self.imap.fetch(last_mail_id, "(BODY.PEEK[])")
-                    # _, data = self.imap.fetch(last_mail_id, "(RFC822)")
-                    raw_email = data[0][1]
-                    msg = message_from_bytes(raw_email)
+            while time() < start_time + 180:
+                try:
+                    await asyncio.sleep(5)
 
-                if (
-                    msg and
-                    msg["From"] in msg_from and
-                    (not self.fake_mail or msg["To"] == self.fake_mail) and
-                    (not subject or msg["Subject"] == subject) and
-                    (not part_subject or part_subject in (msg["Subject"] or "")) 
-                ):
-                    return self._format_mail(msg)
+                    all_candidates: list[tuple[float, object]] = []
 
-                if first:
-                    logger.info(f"Waiting for mail from {', '.join(msg_from)}")
-                    first = False
+                    for mbox in folders:
+                        typ, _ = self.imap.select(mbox, readonly=True)
+                        if typ != "OK":
+                            continue
 
-            except Exception as e:
-                logger.error(f"Error while fetching email: {e}")
-                await asyncio.sleep(5)
+                        # Collect IDs from all specified senders in this folder
+                        ids: set[bytes] = set()
+                        for sender in msg_from:
+                            typ, data = self.imap.search(None, "FROM", sender)
+                            if typ == "OK" and data and data[0]:
+                                ids.update(data[0].split())
 
-        raise MailTimedOut(f"Timeout waiting for email from {', '.join(msg_from)}")
+                        if not ids:
+                            continue
+
+                        # Fetch and filter messages, remember their Date as timestamp
+                        for msg_id in ids:
+                            typ, fetched = self.imap.fetch(msg_id, "(BODY.PEEK[])")
+                            if typ != "OK" or not fetched or not fetched[0]:
+                                continue
+
+                            raw_email = fetched[0][1]
+                            msg = message_from_bytes(raw_email)
+
+                            # Original filters preserved
+                            if msg.get("From") not in msg_from:
+                                continue
+                            if self.fake_mail and msg.get("To") != self.fake_mail:
+                                continue
+
+                            subj = (msg.get("Subject") or "")
+                            if subject and subj != subject:
+                                continue
+                            if part_subject and part_subject not in subj:
+                                continue
+
+                            # Parse Date; fallback to 0 if missing/invalid
+                            try:
+                                dt = utils.parsedate_to_datetime(msg.get("Date")).timestamp()
+                            except Exception:
+                                dt = 0.0
+
+                            all_candidates.append((dt, msg))
+
+                    if all_candidates:
+                        # newest by Date
+                        _, newest = max(all_candidates, key=lambda t: t[0])
+                        return self._format_mail(newest)
+
+                    if first:
+                        logger.info(f"Waiting for mail from {', '.join(msg_from)} in INBOX/Spam")
+                        first = False
+
+                except Exception as e:
+                    logger.error(f"Error while searching email: {e}")
+                    await asyncio.sleep(5)
+
+            raise MailTimedOut(f"Timeout waiting for email from {', '.join(msg_from)}")
 
     def _format_mail(self, mail) -> BeautifulSoup:
         """Extract and parse HTML content from an email."""

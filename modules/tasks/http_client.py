@@ -158,15 +158,12 @@ class BaseHttpClient:
 
                 # Handle errors
                 if 400 <= resp.status_code < 500:
-                    logger.warning(
-                        f"{self.user} received status {resp.status_code} for request {url}"
-                    )
-
+ 
                     # Check for authorization issues
                     if resp.status_code == 401 or resp.status_code == 403:
                         if "!DOCTYPE" not in response_text:
-                            logger.error(
-                                f"{self.user} authorization error: {response_text}"
+                            logger.warning(
+                                f"{self.user} authorization error: {response_text} . Need to authorize with a new token"
                             )
                         return False, response_text
 
@@ -189,6 +186,11 @@ class BaseHttpClient:
                             return False, error_json
                         except Exception:
                             return False, "RATE_LIMIT"
+
+                    logger.error(
+                        f"{self.user} received status {resp.status_code} for request {url}"
+                    )
+
 
                     # Parse response for possible error JSON
                     try:
