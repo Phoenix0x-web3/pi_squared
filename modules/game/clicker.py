@@ -21,6 +21,8 @@ class PiClicker:
     __module__ = 'Pi Clicker'
     BASE = "https://pisquared-api.pulsar.money/api/v1"
 
+    _WORKERS = 8
+
     def __init__(self, wallet: Wallet):
         self.session = Browser(wallet=wallet)
         self.wallet = wallet
@@ -36,6 +38,14 @@ class PiClicker:
             'Referer': 'https://portal.pi2.network/',
             'Host': 'pisquared-api.pulsar.money',
         }
+
+        self._q: Optional[asyncio.Queue] = None
+        self._workers: list[asyncio.Task] = []
+        self._stream_running: bool = False
+        self._seq: int = 0
+        self._session_id: Optional[str] = None
+        self._STOP = object()
+
 
     @async_retry()
     async def start_game_session(self):
@@ -73,7 +83,6 @@ class PiClicker:
         url = f"{self.BASE}/game-sessions/{game_session_id}/click"
 
         r = await self.session.post(url=url, headers=self.base_headers, json=json_data)
-
         if not r.status_code <= 202:
             raise Exception(f"{r.status_code} | {r.text}")
         try:
@@ -94,12 +103,86 @@ class PiClicker:
         except Exception as e:
             raise Exception(f"End Game Session | {e} | {r.status_code} | {r.text}")
 
-
     @staticmethod
     def _rand_near(cx: int, cy: int, *, max_r: int = 10, min_r: int = 2) -> Tuple[int, int]:
         a = random.random() * 2 * math.pi
         r = random.uniform(min_r, max_r)
         return int(cx + r * math.cos(a)), int(cy + r * math.sin(a))
+
+    async def start_click_stream(self, session_id: str) -> None:
+        if self._stream_running:
+            return
+        self._session_id = session_id
+        self._q = asyncio.Queue()
+        self._seq = 0
+        self._stream_running = True
+        self._workers = [
+            asyncio.create_task(self._click_worker(i))
+            for i in range(self._WORKERS)
+        ]
+        logger.debug(f"{self.wallet} | {self.__module__} | click-stream started with {len(self._workers)} workers")
+
+    async def push_click(
+            self, *, x: int, y: int, color: str, is_correct: bool, energy_generated: int, timestamp_ms: int
+    ) -> None:
+        if not self._stream_running or self._q is None:
+            raise RuntimeError("click-stream is not running")
+        self._seq += 1
+        self._q.put_nowait({
+            "seq": self._seq,
+            "x": int(x), "y": int(y),
+            "color": color,
+            "isCorrect": bool(is_correct),
+            "energyGenerated": int(energy_generated),
+            "timestamp": int(timestamp_ms),
+        })
+
+    async def stop_click_stream(self) -> None:
+        if not self._stream_running:
+            return
+        assert self._q is not None
+        for _ in self._workers:
+            self._q.put_nowait(self._STOP)
+        await asyncio.gather(*self._workers, return_exceptions=True)
+        self._workers.clear()
+        self._q = None
+        self._stream_running = False
+        self._session_id = None
+        logger.debug(f"{self.wallet} | {self.__module__} | click-stream stopped")
+
+    async def _click_worker(self, wid: int) -> None:
+        local_browser = Browser(wallet=self.wallet)
+        sid = self._session_id
+        q = self._q
+        if not sid or q is None:
+            return
+        while True:
+            item = await q.get()
+            if item is self._STOP:
+                break
+            try:
+                await self._click_via(local_browser, sid, item)
+                logger.debug(f"{self.wallet} | {self.__module__} | send seq={item['seq']} ok")
+            except Exception as e:
+                logger.debug(f"{self.wallet} | {self.__module__} | send seq={item['seq']} error: {e}")
+            finally:
+                await asyncio.sleep(0)
+
+    @async_retry()
+    async def _click_via(self, browser: Browser, session_id: str, item: Dict[str, Any]):
+        url = f"{self.BASE}/game-sessions/{session_id}/click"
+        json_data = {
+            "color": item["color"],
+            "isCorrect": item["isCorrect"],
+            "energyGenerated": item["energyGenerated"],
+            "x": item["x"],
+            "y": item["y"],
+            "timestamp": item["timestamp"],
+        }
+        r = await browser.post(url=url, headers=self.base_headers, json=json_data)
+        if not r.status_code <= 202:
+            raise Exception(f"{r.status_code} | {r.text}")
+        check = r.json()
 
     async def run_session_with_engine(self,
             base_x: int,
@@ -135,6 +218,8 @@ class PiClicker:
         session_id = start_resp.get("id") if isinstance(start_resp, dict) else json.loads(start_resp).get("id")
         logger.debug(f"{self.wallet} | {self.__module__} | Started GameSessionID: {session_id}")
 
+        await self.start_click_stream(session_id)
+
         stage_speeds_ms = stage_speeds_ms or [4000, 3000, 2200, 1700, 1300, 1100, 800, 400]
 
         cur_idx = engine.current_stage_index
@@ -165,15 +250,18 @@ class PiClicker:
             is_ok = (detected == target_color)
             color_for_backend = detected
 
-            _ = await self.click(
-                session_id,
+            await self.push_click(
                 x=x, y=y,
-                color=color_for_backend,
-                is_correct=is_ok,
-                energy_generated=(1 if is_ok else 0),
+                color=target_color,
+                is_correct=True,
+                energy_generated=1,
                 timestamp_ms=ts_ms,
             )
-            logger.debug(f"{self.wallet} | {self.__module__} | clicked x={x} y={y} color={target_color}")
+
+            logger.debug(f"{self.wallet} | {self.__module__} | queued x={x} y={y} color={target_color}")
+
+            #logger.debug(f"{self.wallet} | {self.__module__} | clicked x={x} y={y} color={target_color}")
+
             engine.register_click(energy_generated=(1 if is_ok else 0))
             i += 1
 
@@ -184,8 +272,11 @@ class PiClicker:
                 sched.set_speed(speed)
                 arena.header_note = f"stage→{last_stage} speed={speed}ms"
 
-            await asyncio.sleep(random.uniform(0.0001, 0.005))
+            await asyncio.sleep(random.uniform(0.15, 0.4))
 
+        await self.stop_click_stream()
+
+        # --- end ----
         end_payload = engine.build_end_payload(
             tps_mode=tps_mode,
             override_level=override_level,
