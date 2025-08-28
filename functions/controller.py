@@ -30,6 +30,9 @@ class Controller:
             #{'BASE_X': 442, 'BASE_Y': 543, 'CONTAINER_PX': 276},
             #{'BASE_X': 415, 'BASE_Y': 410, 'CONTAINER_PX': 276},
             {'BASE_X': 895, 'BASE_Y': 269, 'CONTAINER_PX': 288},
+            {'BASE_X': 557, 'BASE_Y': 161, 'CONTAINER_PX': 288},
+            {'BASE_X': 557, 'BASE_Y': 224, 'CONTAINER_PX': 288},
+            {'BASE_X': 981, 'BASE_Y': 345, 'CONTAINER_PX': 288},
             #{'BASE_X': 514, 'BASE_Y': 358, 'CONTAINER_PX': 276},
         ]
 
