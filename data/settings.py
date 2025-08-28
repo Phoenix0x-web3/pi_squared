@@ -37,6 +37,8 @@ class Settings(Singleton):
         self.auto_replace_twitter = json_data.get("auto_replace_twitter ", True)
         self.imap_server = json_data.get("imap_server", "")
         self.imap_port = json_data.get("imap_port", "")
+        self.clicks_min = json_data.get("clicks", {}).get("min")
+        self.clicks_max = json_data.get("clicks", {}).get("max")
 
 
 # Configure the logger based on the settings
