@@ -31,6 +31,10 @@ class Controller:
             await self.quests_client.complete_quests()
 
     async def complete_games(self):
+        session = await self.register()
+        if not session:
+            return False
+        total_play, best_score = await self.quests_client.get_game_stats()
         await self.clicker_client.handle_clicker(total_play=total_play, best_score=best_score)
 
     async def run_all_tasks(self):
@@ -40,4 +44,4 @@ class Controller:
         await self.quests_client.complete_quests(random_stop=True)
         total_play, best_score = await self.quests_client.get_game_stats()
         await self.clicker_client.handle_clicker(total_play=total_play, best_score=best_score)
-        await self.quests_client.complete_quests(random_stop=True)
+        await self.quests_client.complete_quests()

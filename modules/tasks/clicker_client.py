@@ -50,7 +50,8 @@ class ClickerClient(PiClicker):
                 if best_score < 105:
                     clicks = random.randint(106, 150)
                     best_score = clicks
-                await self.clicker_controller(clicks=clicks)
+                clicks_result = await self.clicker_controller(clicks=clicks)
+                logger.success(clicks_result)
             except Exception:
                 logger.error(f"{self.wallet} can't play game continue")
                 await asyncio.sleep(5)
