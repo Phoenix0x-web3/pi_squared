@@ -62,7 +62,7 @@ async def activity(action: int):
             ]
 
     if action == 1:
-        await execute(wallets, test_auth)
+        await execute(wallets, register)
 
 async def register(wallet):
     

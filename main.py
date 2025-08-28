@@ -71,7 +71,7 @@ async def choose_action():
         console.print(f"[bold blue]Starting Import Wallets to DB[/bold blue]")
         await Export.wallets_to_txt()
 
-    elif action == "Start Testing Auth":
+    elif action == "Start Register":
         await activity(action=1)
 
     elif action == "Reset files Folder":
