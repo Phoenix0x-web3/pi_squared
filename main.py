@@ -13,10 +13,11 @@ from utils.git_version import check_for_updates
 
 console = Console()
 
-PROJECT = 'Pi Network'
+PROJECT = 'Pi Squared'
 
 PROJECT_ACTIONS =   [
                     "Start Register",
+                    "Complete Quests",
                     "Back"
                     ]
 
@@ -74,6 +75,9 @@ async def choose_action():
     elif action == "Start Register":
         await activity(action=1)
 
+    elif action == "Complete Quests":
+        await activity(action=2)
+
     elif action == "Reset files Folder":
         console.print("This action will delete the files folder and reset it.") 
         answer = input("Are you sure you want to perform this action? y/N ")
@@ -90,7 +94,7 @@ async def choose_action():
 async def main():
     create_files()
 
-    # await check_for_updates(repo_name="base_architecture", repo_private=True)
+    await check_for_updates(repo_name="pi_squared", repo_private=True)
     await choose_action()
 
 if __name__ == '__main__':

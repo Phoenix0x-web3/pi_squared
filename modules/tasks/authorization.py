@@ -33,14 +33,10 @@ class AuthClient(BaseHttpClient):
         return session
 
     async def get_session(self):
-        if self.user.bearer_token and self.user.refresh_token:
-            headers = {
-                "Authorization": self.user.bearer_token,
-                "X-Refresh-Token": self.user.refresh_token
-            }
-            success, data = await self.request(url=self.BASE_LINK + "auth/session", method="GET", headers=headers)
-            if success and "user" in data:
-                return data
+        success, data = await self.request(url=self.BASE_LINK + "auth/session", method="GET")
+        logger.debug(data)
+        if success and "user" in data:
+            return data
         return False
 
     def remove_digits(self, text):
