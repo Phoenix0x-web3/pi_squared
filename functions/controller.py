@@ -30,7 +30,6 @@ class Controller:
         
         self.auth_client = AuthClient(user=self.wallet)
         self.quests_client = QuestsClient(user=self.wallet)
-        self.clicker_client = PiClicker(wallet=self.wallet)
 
 
     async def register(self):
@@ -59,7 +58,8 @@ class Controller:
 
         logger.info(f"{self.wallet} | {self.__controller__} | Clicker Handle | trying to click {clicks} times in a session")
 
-        return await self.clicker_client.run_session_with_engine(
+        clicker_client = PiClicker(wallet=self.wallet)
+        return await clicker_client.run_session_with_engine(
             base_x=box['BASE_X'],
             base_y=box['BASE_Y'],
             clicks=clicks,

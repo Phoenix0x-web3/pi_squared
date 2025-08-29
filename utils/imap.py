@@ -4,9 +4,10 @@ from bs4 import BeautifulSoup
 from time import time
 from loguru import logger
 from email import message_from_bytes, utils
+from datetime import datetime 
 from typing import Union, List
+import re
 
-from data.settings import Settings
 
 class MailTimedOut(Exception):
     """Custom exception for email timeout errors."""
@@ -33,7 +34,14 @@ class Mail:
     def _login(self, only_check: bool = False) -> None:
         """Attempt to log in to the IMAP server."""
         try:
-            self.imap = IMAP4_SSL(Settings().imap_server, Settings().imap_port)
+            imap_port = 993
+            if "icloud" in self.mail_data:
+                imap_server = "imap.mail.me.com"
+            elif "gmx" in self.mail_data:
+                imap_server = "imap.gmx.com"
+            else:
+                raise Exception("Imap server it's not icloud or gmx")
+            self.imap = IMAP4_SSL(host=imap_server,port=imap_port)
             self.imap.login(self.mail_login, self.mail_pass)
             self.authed = True
         except IMAP4.error as error:
@@ -61,7 +69,7 @@ class Mail:
 
             folders = ["INBOX", "Spam"]
 
-            while time() < start_time + 180:
+            while time() < start_time + 120:
                 try:
                     await asyncio.sleep(5)
 
@@ -74,10 +82,13 @@ class Mail:
 
                         # Collect IDs from all specified senders in this folder
                         ids: set[bytes] = set()
-                        for sender in msg_from:
-                            typ, data = self.imap.search(None, "FROM", sender)
-                            if typ == "OK" and data and data[0]:
-                                ids.update(data[0].split())
+                        time_threshold = datetime.now()
+                
+                        since_date = time_threshold.strftime("%d-%b-%Y")
+                        
+                        typ, data = self.imap.search(None, f'SINCE "{since_date}"')
+                        if typ == "OK" and data and data[0]:
+                            ids.update(data[0].split())
 
                         if not ids:
                             continue
@@ -92,10 +103,25 @@ class Mail:
                             msg = message_from_bytes(raw_email)
 
                             # Original filters preserved
-                            if msg.get("From") not in msg_from:
+                            email_msg_from = msg.get("From")
+                            if not email_msg_from:
                                 continue
-                            if self.fake_mail and msg.get("To") != self.fake_mail:
+                            match = re.search(r'"(.*?)"', email_msg_from)
+                            if match:
+                                email_msg_from = match.group(1)
+
+                            if email_msg_from not in msg_from:
                                 continue
+
+                            if self.fake_mail: 
+                                msg_to = msg.get("To")
+                                if not msg_to:
+                                    continue
+                                match = re.search(r'<(.*?)>', msg_to)
+                                if match:
+                                    msg_to = match.group(1)
+                                if msg_to != self.fake_mail:
+                                    continue
 
                             subj = (msg.get("Subject") or "")
                             if subject and subj != subject:

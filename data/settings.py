@@ -35,8 +35,6 @@ class Settings(Singleton):
         self.resources_max_failures = json_data.get("resources_max_failures", 3)
         self.auto_replace_proxy = json_data.get("auto_replace_proxy ", True)
         self.auto_replace_twitter = json_data.get("auto_replace_twitter ", True)
-        self.imap_server = json_data.get("imap_server", "")
-        self.imap_port = json_data.get("imap_port", "")
         self.clicks_min = json_data.get("clicks", {}).get("min")
         self.clicks_max = json_data.get("clicks", {}).get("max")
         self.games_min = json_data.get("games", {}).get("min")
