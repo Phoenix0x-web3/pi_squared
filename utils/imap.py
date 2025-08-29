@@ -13,6 +13,7 @@ class MailTimedOut(Exception):
     pass
 
 class Mail:
+    __module__ = 'IMAP Mail'
     def __init__(self, mail_data: str):
         """Initialize Mail with login credentials if provided."""
         self.mail_data = mail_data
@@ -40,7 +41,7 @@ class Mail:
             if only_check:
                 logger.error(f"Email login failed for {self.mail_login}: {error_msg}")
             else:
-                raise Exception(f"Email login failed for {self.mail_login}: {error_msg}")
+                raise Exception(f" {self.__module__} | Email login failed for {self.mail_login}: {error_msg}")
 
     async def find_mail(
             self,
@@ -56,7 +57,7 @@ class Mail:
             start_time = time()
             first = True
             if not self.imap:
-                raise Exception("IMAP connection not established")
+                raise Exception(f" {self.__module__} | IMAP connection not established")
 
             folders = ["INBOX", "Spam"]
 

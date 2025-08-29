@@ -6,6 +6,7 @@ from data.settings import Settings
 
 
 class QuestsClient(BaseHttpClient):
+    __module__ = 'PiPortal Quests'
     BASE_LINK = "https://pisquared-api.pulsar.money/api/v1/"
 
 
@@ -31,61 +32,60 @@ class QuestsClient(BaseHttpClient):
                 if correct_answer:
                     task_result = await self.do_task_request(task_guid=task_id, extra_arguments=[correct_answer])
                     if task_result:
-                        logger.success(f"{self.user} Completed quiz task {task_title} with answer: {correct_answer}")
+                        logger.success(f"{self.user} | {self.__module__ } | Completed quiz task {task_title} with answer: {correct_answer}")
                     else:
-                        logger.error(f"{self.user} can't complete {task_title} with answer: {correct_answer}")
+                        logger.error(f"{self.user} | {self.__module__ } | can't complete {task_title} with answer: {correct_answer}")
                 else:
                     logger.debug(f"No correct answer found for quiz task {task_id}")
                     continue
-                    
+
             elif task.get('taskName') == 'click_link':
                 task_result = await self.do_task_request(task_guid=task_id)
                 if task_result:
-                    logger.success(f"{self.user} Completed click_link task {task_title}")
+                    logger.success(f"{self.user} | {self.__module__ } | Completed click_link task {task_title}")
                 else:
-                    logger.error(f"{self.user} can't complete click_link task {task_title}")
+                    logger.error(f"{self.user} | {self.__module__ } | can't complete click_link task {task_title}")
 
             elif task.get('taskName') == 'pisquared_query':
                 arguments = task.get('arguments', [])
                 query_type = None
                 min_value = None
-                
+
                 for arg in arguments:
                     if arg.get('name') == 'query':
                         query_type = arg.get('value')
                     if arg.get('name') == 'minValue':
-                        min_value = int(arg.get('value')) 
-                
-                
+                        min_value = int(arg.get('value'))
+
+
                 should_attempt_task = False
                 if query_type == 'pisquared-games' and total_play >= min_value:
                     should_attempt_task = True
                 elif query_type == 'pisquared-clicks' and best_score >= min_value:
                     should_attempt_task = True
-                
+
                 if should_attempt_task:
                     task_result = await self.do_task_request(task_guid=task_id, extra_arguments=[])
                     if task_result:
-                        logger.success(f"{self.user} Completed game challenge task {task_title}")
+                        logger.success(f"{self.user} | {self.__module__ } | Completed game challenge task {task_title}")
                     else:
-                        logger.error(f"{self.user} can't complete game challenge task {task_title}")
+                        logger.error(f"{self.user} | {self.__module__ } | can't complete game challenge task {task_title}")
                 else:
-                    logger.debug(f"{self.user} does not meet conditions for game challenge task {task_title} (total_play: {total_play}, best_score: {best_score}, required: {min_value} for {query_type})")
+                    logger.debug(f"{self.user} | {self.__module__ } | does not meet conditions for game challenge task {task_title} (total_play: {total_play}, best_score: {best_score}, required: {min_value} for {query_type})")
                     continue
             else:
                 continue
-      
+
             if random_stop:
                 if i > random_quest_complete:
-                    logger.info(f"{self.user} complete {i} quests and random stop. Complete the rest after the games")
+                    logger.info(f"{self.user} | {self.__module__ } | complete {i} quests and random stop. Complete the rest after the games")
                     return True
             random_sleep = random.randint(Settings().random_pause_between_actions_min, Settings().random_pause_between_actions_max)
-            logger.debug(f"{self.user} {random_sleep} sleep seconds before next quest")
+            logger.debug(f"{self.user} | {self.__module__ } | {random_sleep} sleep seconds before next quest")
             await asyncio.sleep(random_sleep)
-        
-        logger.success(f"{self.user} completed or already completed all available quests")
-        return True   
 
+        logger.success(f"{self.user} | {self.__module__ } | completed or already completed all available quests")
+        return True   
 
     async def do_task_request(self, task_guid: str, extra_arguments: list = []):
         json_data = {
@@ -131,7 +131,7 @@ class QuestsClient(BaseHttpClient):
     async def get_game_stats(self,):
         session = await self.get_session()
         if not session:
-            raise Exception("Can't get session")
+            raise Exception(f"{self.__module__} | Can't get session")
         user_id = session["user"]["id"]
         success, data = await self.request(url=f"{self.BASE_LINK}game-statistics/user/{user_id}",method="GET", use_refresh_token=False)
         
