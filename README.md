@@ -12,7 +12,7 @@ More info:
 Pi Squared Network is building the Verifiable Settlement Layer (VSL) — a decentralized infrastructure for fast, scalable, and cryptographically verifiable transactions between applications, blockchains, and AI agents.
 
 ## Functionality
-- Register with email(dmx, icloud)
+- Register with email(gmx, icloud)
 - Pi2 Reactor
 - Quests
 
@@ -125,16 +125,9 @@ tg_user_id: ''
 
 ### 3. Module Configurations
 
-**Emails**:
-```yaml
-#Server for IMAP support gmx and icloud
-#For icloud use imap.mail.me.com
-imap_server: imap.gmx.com
-#Port for IMAP
-imap_port: 993
 ```
 **Pi2 Reactor**:
-```yaml
+
 #Games
 games:
   min: 30
