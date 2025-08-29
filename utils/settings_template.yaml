@@ -68,8 +68,9 @@ auto_replace_proxy: True
 #Perform automatic replacement from twitter reserve files
 auto_replace_twitter: False
 
-#Server for IMAP support rambler and icloud
+#Server for IMAP support gmx and icloud (rambler is blocked by project)
 #For icloud use imap.mail.me.com
-imap_server: imap.rambler.ru
+imap_server: imap.gmx.com 
 #Port for IMAP
 imap_port: 993
+ 
