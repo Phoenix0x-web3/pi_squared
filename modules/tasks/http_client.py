@@ -14,6 +14,8 @@ from utils.resource_manager import ResourceManager
 
 class BaseHttpClient:
     """Base HTTP client for making requests"""
+    __module__ = 'HTTP Client'
+    
     def __init__(self, user: Wallet):
         """
         Initialize the base HTTP client
@@ -163,19 +165,19 @@ class BaseHttpClient:
                     if resp.status_code == 401 or resp.status_code == 403:
                         if "!DOCTYPE" not in response_text:
                             logger.warning(
-                                f"{self.user} authorization error: {response_text} . Need to authorize with a new token"
+                                f"{self.user} | {self.__module__ } | authorization error: {response_text} . Need to authorize with a new token"
                             )
                         return False, response_text
 
                     # Check for rate limiting
                     if resp.status_code == 429:
-                        logger.warning(f"{self.user} rate limit exceeded (429)")
+                        logger.warning(f"{self.user} | {self.__module__ } | rate limit exceeded (429)")
 
                         # If not last attempt, wait and retry
                         if attempt < retries - 1:
                             wait_time = random.uniform(10, 30)  # 10-30 seconds
                             logger.info(
-                                f"{self.user} waiting {int(wait_time)} seconds before next attempt"
+                                f"{self.user} | {self.__module__ } | waiting {int(wait_time)} seconds before next attempt"
                             )
                             await asyncio.sleep(wait_time)
                             continue
@@ -188,7 +190,7 @@ class BaseHttpClient:
                             return False, "RATE_LIMIT"
 
                     logger.error(
-                        f"{self.user} received status {resp.status_code} for request {url}"
+                        f"{self.user} | {self.__module__ } | received status {resp.status_code} for request {url}"
                     )
 
 
@@ -201,7 +203,7 @@ class BaseHttpClient:
 
                 elif 500 <= resp.status_code < 600:
                     logger.warning(
-                        f"{self.user} received status {resp.status_code}, retry attempt {attempt + 1}/{retries}"
+                        f"{self.user} | {self.__module__ } | received status {resp.status_code}, retry attempt {attempt + 1}/{retries}"
                     )
                     await asyncio.sleep(2**attempt)  # Exponential backoff
                     continue
@@ -210,7 +212,7 @@ class BaseHttpClient:
 
             except CurlError as e:
                 logger.warning(
-                    f"{self.user} connection error during request {url}: {str(e)}"
+                    f"{self.user} | {self.__module__ } | connection error during request {url}: {str(e)}"
                 )
 
                 # Increment proxy error counter
@@ -224,7 +226,7 @@ class BaseHttpClient:
                     # If proxy error limit exceeded, mark proxy as bad
                     if self.proxy_errors >= self.max_proxy_errors:
                         logger.warning(
-                            f"{self.user} proxy error limit exceeded ({self.proxy_errors}/{self.max_proxy_errors}), marking as BAD"
+                            f"{self.user} | {self.__module__ } | proxy error limit exceeded ({self.proxy_errors}/{self.max_proxy_errors}), marking as BAD"
                         )
 
                         resource_manager = ResourceManager()
@@ -237,7 +239,7 @@ class BaseHttpClient:
                             )
                             if success:
                                 logger.info(
-                                    f"{self.user} proxy automatically replaced: {message}"
+                                    f"{self.user} | {self.__module__ } | proxy automatically replaced: {message}"
                                 )
                                 # Update proxy for current client
                                 updated_user = get_wallet_by_id(id=self.user.id)
@@ -249,7 +251,7 @@ class BaseHttpClient:
                                     self.browser = Browser(self.user)
                             else:
                                 logger.error(
-                                    f"{self.user} failed to replace proxy: {message}"
+                                    f"{self.user} | {self.__module__ } | failed to replace proxy: {message}"
                                 )
 
                 await asyncio.sleep(2**attempt)  # Exponential backoff
@@ -257,7 +259,7 @@ class BaseHttpClient:
 
             except Exception as e:
                 logger.error(
-                    f"{self.user} unexpected error during request {url}: {str(e)}"
+                    f"{self.user} | {self.__module__ } | unexpected error during request {url}: {str(e)}"
                 )
                 return False, str(e)
         return False, ""
