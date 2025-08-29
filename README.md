@@ -5,6 +5,7 @@ More info:
 [Telegram Chat](https://t.me/phoenix_w3_space)
 
 [Инструкция на русcком](https://phoenix-14.gitbook.io/phoenix/proekty/pi-squared)</br>
+[Instruction English version](https://phoenix-14.gitbook.io/phoenix/en/projects/pi-squared)</br>
 
 
 ## PI Squared Network
@@ -70,7 +71,7 @@ pharos_network/
 ## Configuration
 
 ### 1. files folder
-- `email_data.txt`: One email per line(format: `email:password`). Work with dmx and icloud emails
+- `email_data.txt`: Work with emails gmx(format: `email:pass`) and icloud(format: `email:pass:fake_email`)
 - `proxy.txt`: One proxy per line (format: `http://user:pass@ip:port`)
 - `reserve_proxy.txt`: One proxy per line (format: `http://user:pass@ip:port`)
 - `twitter_tokens.txt`: One token per line 
