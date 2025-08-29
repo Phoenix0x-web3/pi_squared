@@ -9,7 +9,6 @@ from data.settings import Settings
 from modules.game.clicker import PiClicker
 from modules.tasks.quests_client import QuestsClient
 from modules.tasks.authorization import AuthClient
-from modules.tasks.clicker_client import ClickerClient
 from utils.db_api.models import Wallet
 from utils.logs_decorator import controller_log
 
