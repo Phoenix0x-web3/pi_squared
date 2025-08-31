@@ -17,12 +17,12 @@ class AuthClient(BaseHttpClient):
 
     @async_retry()
     async def login(self):
-        logger.info(f"{self.user} | {self.__module__ } | starting authorizate")
+        logger.info(f"{self.user} | {self.__module__ } | starting authorize")
         session = await self.get_session()
         if session:
-            logger.success(f"{self.user} | {self.__module__ } | success authorizate")
+            logger.success(f"{self.user} | {self.__module__ } | success authorize")
             return session
-        self.mail_waiter = Mail(self.user.email_data)
+        self.mail_waiter = Mail(self.user)
         if not self.mail_waiter.authed:
             return False
 
@@ -35,7 +35,7 @@ class AuthClient(BaseHttpClient):
         if isinstance(data, dict) and data["isDefaultUsername"]:
             await self.change_username()
         session = await self.get_session()
-        logger.success(f"{self.user} | {self.__module__ } | success authorizate")
+        logger.success(f"{self.user} | {self.__module__ } | success authorize")
         return session
 
     async def get_session(self):
@@ -79,9 +79,9 @@ class AuthClient(BaseHttpClient):
         }
         success, data = await self.request(url=self.BASE_LINK + "auth/verify-otp", method="POST", json_data=json_data)
         if success:
-            logger.success(f"{self.user} | {self.__module__ } | success send email code")
+            logger.success(f"{self.user} | {self.__module__ } | success send email code {code}")
             return data
-        raise Exception(f"{self.__module__ } | Can't send verify code")
+        raise Exception(f"{self.user} {self.__module__ } | Can't send verify code {code}")
 
     async def get_verification_code(self):
         """Get verification code from email"""
