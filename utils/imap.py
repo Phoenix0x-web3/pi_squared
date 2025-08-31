@@ -1,4 +1,5 @@
 import asyncio
+import re
 from imaplib import IMAP4_SSL, IMAP4
 from bs4 import BeautifulSoup
 from time import time
@@ -6,8 +7,8 @@ from loguru import logger
 from email import message_from_bytes, utils
 from datetime import datetime 
 from typing import Union, List
-import re
-
+from utils.db_api.models import Wallet
+ 
 
 class MailTimedOut(Exception):
     """Custom exception for email timeout errors."""
@@ -15,20 +16,21 @@ class MailTimedOut(Exception):
 
 class Mail:
     __module__ = 'IMAP Mail'
-    def __init__(self, mail_data: str):
+    def __init__(self, user: Wallet):
         """Initialize Mail with login credentials if provided."""
-        self.mail_data = mail_data
+        self.user = user
+        self.mail_data = user.email_data
         self.authed = False
         self.imap = None
         self.fake_mail = None
-        if "icloud" in mail_data:
-            self.mail_login, self.mail_pass, self.fake_mail = mail_data.split(':')
+        if "icloud" in self.mail_data:
+            self.mail_login, self.mail_pass, self.fake_mail = self.mail_data.split(':')
         else:
-            self.mail_login, self.mail_pass = mail_data.split(':', 1)
+            self.mail_login, self.mail_pass = self.mail_data.split(':', 1)
         try:
             self._login(only_check=True)
         except ValueError as e:
-            logger.error(f"Invalid mail_data format: {e}")
+            logger.error(f"{self.user} Invalid mail_data format: {e}")
             raise
 
     def _login(self, only_check: bool = False) -> None:
@@ -40,16 +42,16 @@ class Mail:
             elif "gmx" in self.mail_data:
                 imap_server = "imap.gmx.com"
             else:
-                raise Exception("Imap server it's not icloud or gmx")
+                raise Exception(f"{self.user} {self.__module__} Imap server it's not icloud or gmx")
             self.imap = IMAP4_SSL(host=imap_server,port=imap_port)
             self.imap.login(self.mail_login, self.mail_pass)
             self.authed = True
         except IMAP4.error as error:
             error_msg = error.args[0].decode() if isinstance(error.args[0], bytes) else str(error)
             if only_check:
-                logger.error(f"Email login failed for {self.mail_login}: {error_msg}")
+                logger.error(f"{self.user} Email login failed for {self.mail_login}: {error_msg}")
             else:
-                raise Exception(f" {self.__module__} | Email login failed for {self.mail_login}: {error_msg}")
+                raise Exception(f"{self.user} {self.__module__} | Email login failed for {self.mail_login}: {error_msg}")
 
     async def find_mail(
             self,
@@ -65,13 +67,13 @@ class Mail:
             start_time = time()
             first = True
             if not self.imap:
-                raise Exception(f" {self.__module__} | IMAP connection not established")
+                raise Exception(f" {self.user} {self.__module__} | IMAP connection not established")
 
             folders = ["INBOX", "Spam"]
 
             while time() < start_time + 120:
                 try:
-                    await asyncio.sleep(5)
+                    await asyncio.sleep(10)
 
                     all_candidates: list[tuple[float, object]] = []
 
@@ -82,13 +84,10 @@ class Mail:
 
                         # Collect IDs from all specified senders in this folder
                         ids: set[bytes] = set()
-                        time_threshold = datetime.now()
-                
-                        since_date = time_threshold.strftime("%d-%b-%Y")
-                        
-                        typ, data = self.imap.search(None, f'SINCE "{since_date}"')
-                        if typ == "OK" and data and data[0]:
-                            ids.update(data[0].split())
+                        for sender in msg_from:
+                            typ, data = self.imap.search(None, "FROM", sender)
+                            if typ == "OK" and data and data[0]:
+                                ids.update(data[0].split())
 
                         if not ids:
                             continue
@@ -101,35 +100,22 @@ class Mail:
 
                             raw_email = fetched[0][1]
                             msg = message_from_bytes(raw_email)
-
-                            # Original filters preserved
-                            email_msg_from = msg.get("From")
-                            if not email_msg_from:
+           
+                            from_header = msg["From"] 
+       
+                            name, addr = utils.parseaddr(from_header)
+                            from_ = name or addr          
+     
+                            if from_ not in msg_from:
                                 continue
-                            match = re.search(r'"(.*?)"', email_msg_from)
-                            if match:
-                                email_msg_from = match.group(1)
-
-                            if email_msg_from not in msg_from:
-                                continue
-
-                            if self.fake_mail: 
-                                msg_to = msg.get("To")
-                                if not msg_to:
-                                    continue
-                                match = re.search(r'<(.*?)>', msg_to)
-                                if match:
-                                    msg_to = match.group(1)
-                                if msg_to != self.fake_mail:
-                                    continue
+        
 
                             subj = (msg.get("Subject") or "")
                             if subject and subj != subject:
                                 continue
                             if part_subject and part_subject not in subj:
                                 continue
-
-                            # Parse Date; fallback to 0 if missing/invalid
+ 
                             try:
                                 dt = utils.parsedate_to_datetime(msg.get("Date")).timestamp()
                             except Exception:
@@ -147,7 +133,7 @@ class Mail:
                         first = False
 
                 except Exception as e:
-                    logger.error(f"Error while searching email: {e}")
+                    logger.error(f"{self.user} Error while searching email: {e}")
                     await asyncio.sleep(5)
 
             raise MailTimedOut(f"Timeout waiting for email from {', '.join(msg_from)}")
@@ -168,7 +154,7 @@ class Mail:
 
             raise ValueError("No HTML content found in email")
         except Exception as e:
-            logger.error(f"Error formatting email: {e}")
+            logger.error(f"{self.user} Error formatting email: {e}")
             raise
 
     def __del__(self):
@@ -177,4 +163,4 @@ class Mail:
             try:
                 self.imap.logout()
             except Exception as e:
-                logger.error(f"Error during IMAP logout: {e}")
+                logger.error(f"{self.user} Error during IMAP logout: {e}")

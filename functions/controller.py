@@ -33,8 +33,7 @@ class Controller:
 
 
     async def register(self):
-        session = await self.auth_client.login()
-        return session
+        return await self.auth_client.login()
     
     async def complete_quests(self):
         session = await self.register()
