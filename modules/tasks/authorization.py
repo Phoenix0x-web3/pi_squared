@@ -27,8 +27,7 @@ class AuthClient(BaseHttpClient):
             return False
 
         email_login = self.mail_waiter.mail_login 
-        if self.mail_waiter.fake_mail:
-            email_login = self.mail_waiter.fake_mail
+
         await self.request_email_code(email=email_login)
         code = await self.get_verification_code()
         data = await self.send_verify_code(email=email_login, code=code)
@@ -62,7 +61,10 @@ class AuthClient(BaseHttpClient):
         return False
 
 
-    async def request_email_code(self, email: str):
+    async def request_email_code(self, email: str): 
+        if self.mail_waiter.fake_mail:
+            email = self.mail_waiter.fake_mail
+            
         json_data = {
             'email': email,
         }
@@ -88,7 +90,7 @@ class AuthClient(BaseHttpClient):
         for attempt in range(2):
             try:
                 mail_body = await self.mail_waiter.find_mail(
-                    msg_from=["updates@pulsar.money", "pulsar.money"],
+                    msg_from=["updates@pulsar.money"],
                     part_subject="Login Code - Pi Squared"
                 )
                 strong_tags = mail_body.find_all("strong")
