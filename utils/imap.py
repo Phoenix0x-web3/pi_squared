@@ -69,7 +69,7 @@ class Mail:
             if not self.imap:
                 raise Exception(f" {self.user} {self.__module__} | IMAP connection not established")
 
-            folders = ["INBOX", "Spam"]
+            folders = ["INBOX", "Spam", "Junk"]
 
             while time() < start_time + 120:
                 try:
