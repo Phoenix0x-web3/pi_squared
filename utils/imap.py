@@ -85,10 +85,15 @@ class Mail:
                         # Collect IDs from all specified senders in this folder
                         ids: set[bytes] = set()
                         for sender in msg_from:
-                            typ, data = self.imap.search(None, "FROM", sender)
-                            if typ == "OK" and data and data[0]:
-                                ids.update(data[0].split())
-
+                            if self.fake_mail:  
+                                typ, data = self.imap.search(None, 'FROM', sender, 'TO', self.fake_mail)
+                                if typ == 'OK' and data and data[0]:
+                                    ids.update(data[0].split())
+                            else:              
+                                typ, data = self.imap.search(None, 'FROM', sender)
+                                if typ == 'OK' and data and data[0]:
+                                    ids.update(data[0].split())
+                                    
                         if not ids:
                             continue
 
@@ -100,15 +105,6 @@ class Mail:
 
                             raw_email = fetched[0][1]
                             msg = message_from_bytes(raw_email)
-           
-                            from_header = msg["From"] 
-       
-                            name, addr = utils.parseaddr(from_header)
-                            from_ = name or addr          
-     
-                            if from_ not in msg_from:
-                                continue
-        
 
                             subj = (msg.get("Subject") or "")
                             if subject and subj != subject:
