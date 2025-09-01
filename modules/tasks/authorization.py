@@ -75,6 +75,9 @@ class AuthClient(BaseHttpClient):
         raise Exception(f"{self.__module__ } | Can't request verify code")
 
     async def send_verify_code(self, email:str, code:str):
+        if self.mail_waiter.fake_mail:
+            email = self.mail_waiter.fake_mail
+            
         json_data = {
             'email': email,
             'code': code
