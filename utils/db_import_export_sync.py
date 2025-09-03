@@ -26,6 +26,11 @@ def parse_proxy(proxy: str | None) -> Optional[str]:
             print(f"Invalid proxy format: {proxy}")
             return None 
 
+def pick_proxy(proxies : list, i: int) -> Optional[str]:
+    if not proxies:
+        return None
+    return proxies[i % len(proxies)]
+        
 def remove_line_from_file(value: str, filename: str) -> bool:
     file_path = os.path.join(FILES_DIR, filename)
 
@@ -66,19 +71,11 @@ class Import:
 
         record_count = len(email_data)
 
-        def pick_proxy(i: int) -> Optional[str]:
-            if not proxies:
-                return None
-            if i < len(proxies):
-                return proxies[i % len(proxies)]
-
-            return random.choice(proxies)
-
         wallets: List[Dict[str, Optional[str]]] = []
         for i in range(record_count):
             wallets.append({
                 "email_data": email_data[i] if i < len(email_data) else None,
-                "proxy": parse_proxy(pick_proxy(i)),
+                "proxy": parse_proxy(pick_proxy(proxies, i)),
                 "twitter_token": twitter_tokens[i] if i < len(twitter_tokens) else None,
             })
 
@@ -145,26 +142,18 @@ class Import:
 class Sync:
     
     @staticmethod
-    def parse_tokens_and_proxies_from_txt() -> List[Dict[str, Optional[str]]]:
+    def parse_tokens_and_proxies_from_txt(wallets : List) -> List[Dict[str, Optional[str]]]:
 
         proxies        = read_lines("proxy.txt")
         twitter_tokens = read_lines("twitter_tokens.txt")
         email_data = read_lines("email_data.txt")
         
-        record_count = len(twitter_tokens)
-
-        def pick_proxy(i: int) -> Optional[str]:
-            if not proxies:
-                return None
-            if i < len(proxies):
-                return proxies[i % len(proxies)]
-
-            return random.choice(proxies)
+        record_count = len(wallets)
 
         wallets: List[Dict[str, Optional[str]]] = []
         for i in range(record_count):
             wallets.append({
-                "proxy": parse_proxy(pick_proxy(i)),
+                "proxy": parse_proxy(pick_proxy(proxies, i)),
                 "twitter_token": twitter_tokens[i] if i < len(twitter_tokens) else None,
                 "email_data": email_data[i] if i < len(email_data) else None,
             })
@@ -174,21 +163,21 @@ class Sync:
 
     @staticmethod
     async def sync_wallets_with_tokens_and_proxies():
-       
-        wallet_auxiliary_data_raw  = Sync.parse_tokens_and_proxies_from_txt()
-
-        wallet_auxiliary_data = [SimpleNamespace(**w) for w in wallet_auxiliary_data_raw]
-          
+                 
         wallets = db.all(Wallet)
 
- 
+        if len(wallets) <= 0:
+            logger.warning("No wallets in DB, nothing to update")
+            return
+        
+        wallet_auxiliary_data_raw  = Sync.parse_tokens_and_proxies_from_txt(wallets)
+
+        wallet_auxiliary_data = [SimpleNamespace(**w) for w in wallet_auxiliary_data_raw]
+        
         if len(wallet_auxiliary_data) != len(wallets):
             logger.warning("Mismatch between wallet data and tokens/proxies data. Exiting sync.")
             return
         
-        if len(wallets) <= 0:
-            logger.warning("No wallets in DB, nothing to update")
-            return
         
         total = len(wallets)
 
