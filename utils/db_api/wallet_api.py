@@ -33,6 +33,28 @@ def save_refresh_token(id: int, refresh_token: str) -> bool:
     db.commit()
     return True
 
+def update_twitter_token(id: int, updated_token: str | None) -> bool:
+    """
+    Updates the Twitter token for a wallet with the given private_key.
+    
+    Args:
+        id: The id of the wallet to update
+        new_token: The new Twitter token to set
+    
+    Returns:
+        bool: True if update was successful, False if wallet not found
+    """
+    if not updated_token:
+        return False
+
+    wallet = db.one(Wallet, Wallet.id == id)
+    if not wallet:
+        return False
+    
+    wallet.twitter_token = updated_token
+    db.commit()
+    return True
+
 def replace_bad_proxy(id: int, new_proxy: str) -> bool:
     wallet = db.one(Wallet, Wallet.id == id)
     if not wallet:

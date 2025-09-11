@@ -200,10 +200,6 @@ class Sync:
                     wallet_instance.twitter_token = wallet_data.twitter_token
                     changed = True
 
-                if hasattr(wallet_instance, "email_data") and wallet_instance.email_data != wallet_data.email_data:
-                    wallet_instance.email_data = wallet_data.email_data
-                    changed = True
-
                 if changed:
                     db.commit()
                     edited.append(wallet_instance)

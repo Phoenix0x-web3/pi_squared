@@ -1,8 +1,11 @@
+import re
 import asyncio
 import random
-from .http_client import BaseHttpClient
 from loguru import logger
+
 from data.settings import Settings
+from utils.twitter.twitter_client import TwitterClient
+from .http_client import BaseHttpClient
 
 
 class QuestsClient(BaseHttpClient):
@@ -15,6 +18,7 @@ class QuestsClient(BaseHttpClient):
         random.shuffle(uncompleted_tasks)
         total_play, best_score = await self.get_game_stats()
         random_quest_complete = random.randint(1, len(uncompleted_tasks))
+        logger.debug(uncompleted_tasks)
   
         for i, task in enumerate(uncompleted_tasks):
             task_id = task['id']
@@ -45,6 +49,26 @@ class QuestsClient(BaseHttpClient):
                     logger.success(f"{self.user} | {self.__module__ } | Completed click_link task {task_title}")
                 else:
                     logger.error(f"{self.user} | {self.__module__ } | can't complete click_link task {task_title}")
+
+            elif task.get('taskName') == 'twitter_username' and self.user.twitter_token and self.user.twitter_status == "OK":
+                twitter_client = TwitterClient(user=self.user)
+                await twitter_client.initialize()
+                connect = await self.connect_twitter_to_portal(twitter_client=twitter_client)
+                if not connect:
+                    logger.warning(f"{self.user} can't connect twitter")
+                    continue
+                change_name = await self.change_twitter_name(twitter_client=twitter_client)
+                if change_name:
+                    task_result = await self.do_task_request(task_guid=task_id)
+                    if task_result:
+                        logger.success(f"{self.user} | {self.__module__ } | Completed twitter username task {task_title}")
+                        await asyncio.sleep(5)
+                        await self.change_twitter_name(twitter_client=twitter_client)
+                    else:
+                        logger.error(f"{self.user} | {self.__module__ } | can't complete twitter username task {task_title}")
+                else:
+                    logger.warning(f"{self.user} can't change twitter name. Skip task")
+                    continue
 
             elif task.get('taskName') == 'pisquared_query':
                 arguments = task.get('arguments', [])
@@ -155,3 +179,44 @@ class QuestsClient(BaseHttpClient):
         if success and isinstance(data,dict):
             return data
         return False
+
+    async def change_twitter_name(self, twitter_client):
+        name_now = twitter_client.twitter_account.name
+        if "π²" in name_now:
+            name_now = twitter_client.twitter_account.name
+            result = re.sub(r'π²', '', name_now).strip()
+            return await twitter_client.change_name(name=result)
+        return await twitter_client.change_name(name=twitter_client.twitter_account.name + "π²")
+
+    async def connect_twitter_to_portal(self, twitter_client):
+        check_connect = await self.check_twitter_connect()
+        if check_connect:
+            logger.info(f"{self.user} already have connected twitter")
+            return True
+        if not self.user.twitter_token or self.user.twitter_status != "OK":
+            logger.warning(f"{self.user} can't connect twitter. Not twitter token or twitter status not OK")
+            return False
+        link = await self.request_twitter_link()
+        if not link:
+            return False
+        await twitter_client.connect_twitter_to_site_oauth2(twitter_auth_url=str(link))
+        check_connect = await self.check_twitter_connect()
+        if check_connect:
+            logger.success(f"{self.user} success connect twitter to site")
+            await asyncio.sleep(5)
+            return True
+        else:
+            logger.warning(f"{self.user} can't connect twitter to site")
+            return False
+
+    async def check_twitter_connect(self):
+        _, data = await self.request(url="https://pisquared-api.pulsar.money/api/v1/pulsar/social-pay/me", method="GET")
+        return data['twitterMetadata']
+
+    async def request_twitter_link(self):
+        json_data = {
+            'type': 'register',
+            'redirectUrl': 'https://portal.pi2.network/quests',
+        }
+        _, data = await self.request(url="https://pisquared-api.pulsar.money/api/v1/pulsar/social-pay/register/twitter", method="POST", json_data=json_data)
+        return data

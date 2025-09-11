@@ -8,8 +8,9 @@ from loguru import logger
 import libs.twitter as twitter
 from libs.twitter.utils import remove_at_sign
 from utils.db_api.models import Wallet
-from utils.db_api.wallet_api import update_twitter_token
+from utils.db_api.wallet_api import update_twitter_token, db
 import libs.baseAsyncSession as BaseAsyncSession
+from libs.twitter.errors import AccountSuspended, BadAccountToken, AccountLocked, AccountNotFound
 
 #TODO Move to Exception file
 class BadTwitter(Exception):
@@ -22,6 +23,14 @@ class TwitterOauthData:
     callback_url: str
     callback_response: Response
 
+@dataclass
+class TwitterStatuses:
+    ok: str = 'OK'
+    bad_token:str = "BAD_TOKEN"
+    suspended: str = 'SUSPENDED'
+    relogin: str = "RELOGIN"
+    locked: str = "LOCKED"
+    not_found: str = "NOT FOUND"
 
 class TwitterClient():
 
@@ -95,30 +104,42 @@ class TwitterClient():
         )
 
         # Establish connection
-        await self.twitter_client.__aenter__()
+        try:
+            await self.twitter_client.__aenter__()
 
-        # Check account status
-        await self.twitter_client.establish_status()
+            # Check account status
+            await self.twitter_client.establish_status()
 
-        if self.twitter_account.status == twitter.AccountStatus.GOOD:
-            logger.success(f"{self.user} Twitter client initialized")
-            update_twitter_token(private_key=self.user.private_key, updated_token=self.twitter_account.auth_token)
-            return True
-        else:
-            error_msg = f"Problem with Twitter account status: {self.twitter_account.status}"
-            logger.error(f"{self.user} {error_msg}")
-            self.last_error = error_msg
-            self.error_count += 1
+            if self.twitter_account.status == twitter.AccountStatus.GOOD:
 
-            # If authorization issue, mark token as bad
-            if self.twitter_account.status in [
-                twitter.AccountStatus.BAD_TOKEN,
-                twitter.AccountStatus.SUSPENDED,
-            ]:
-                #TODO Replace Twitter Token to DB
-                raise BadTwitter
+                logger.success(f"{self.user} Twitter client initialized")
+                update_twitter_token(id=self.user.id, updated_token=self.twitter_account.auth_token)
 
+                self.user.twitter_status = TwitterStatuses.ok
+                return True
+
+        except AccountSuspended as e:
+            self.user.twitter_status = TwitterStatuses.suspended
+            logger.error(f"{self.user} | Twitter Suspended, try to reauth manually")
             return False
+
+        except BadAccountToken as e:
+            self.user.twitter_status = TwitterStatuses.relogin
+            logger.error(f"{self.user} | Twitter BadToken, try to reauth manually")
+            return False
+
+        except AccountLocked as e:
+            self.user.twitter_status = TwitterStatuses.locked
+            logger.error(f"{self.user} | Twitter Locked, replace twitter token")
+            return False
+
+        except AccountNotFound as e:
+            self.user.twitter_status = TwitterStatuses.not_found
+            logger.error(f"{self.user} | Twitter Not Found, replace twitter token")
+            return False
+
+        finally:
+            db.commit()
 
 
     async def close(self):
@@ -314,7 +335,56 @@ class TwitterClient():
             logger.warning(f"{self.user} Failed to like")
             return False
 
+    async def change_name(self, name: str) -> bool:
+        """
+        Change name
 
+        Args:
+            name: New name for account
+
+        Returns:
+            Success status
+        """
+
+        if not self.twitter_client:
+            initialize = await self.initialize()
+            if not initialize:
+                raise Exception("Can't initialize twitter client")
+
+        logger.debug(self.twitter_account.name)
+        result = await self.twitter_client.change_name(name)
+
+        if result:
+            logger.success(f"{self.user} username change to {name} successful")
+            return True
+        else:
+            logger.warning(f"{self.user} Failed change to {name} username")
+            return False
+
+    async def change_username(self, username: str) -> bool:
+        """
+        Change username
+
+        Args:
+            username: New username for account
+
+        Returns:
+            Success status
+        """
+
+        if not self.twitter_client:
+            initialize = await self.initialize()
+            if not initialize:
+                raise Exception("Can't initialize twitter client")
+
+        username = await self.twitter_client.change_username(username)
+
+        if username:
+            logger.success(f"{self.user} username change to {username} successful")
+            return True
+        else:
+            logger.warning(f"{self.user} Failed change to {username} username")
+            return False
 
 
     async def connect_twitter_to_site_oauth(self, twitter_auth_url:str) -> TwitterOauthData:
