@@ -53,13 +53,17 @@ class QuestsClient(BaseHttpClient):
             elif task.get('taskName') == 'twitter_username' and self.user.twitter_token and self.user.twitter_status == "OK":
                 twitter_client = TwitterClient(user=self.user)
                 await twitter_client.initialize()
-                change_name = await self.handle_twitter_task(twitter_client=twitter_client)
+                connect = await self.connect_twitter_to_portal(twitter_client=twitter_client)
+                if not connect:
+                    logger.warning(f"{self.user} can't connect twitter")
+                    continue
+                change_name = await self.change_twitter_name(twitter_client=twitter_client)
                 if change_name:
                     task_result = await self.do_task_request(task_guid=task_id)
                     if task_result:
                         logger.success(f"{self.user} | {self.__module__ } | Completed twitter username task {task_title}")
                         await asyncio.sleep(5)
-                        await self.handle_twitter_task(twitter_client, change_back=True)
+                        await self.change_twitter_name(twitter_client=twitter_client)
                     else:
                         logger.error(f"{self.user} | {self.__module__ } | can't complete twitter username task {task_title}")
                 else:
@@ -176,27 +180,12 @@ class QuestsClient(BaseHttpClient):
             return data
         return False
 
-    async def handle_twitter_task(self, twitter_client, change_back: bool = False):
-        if change_back:
-            return await self.change_twitter_name(twitter_client=twitter_client, change_back = change_back)
-        connect_twitter = await self.connect_twitter_to_portal(twitter_client=twitter_client)
-        if connect_twitter:
-            return await self.change_twitter_name(twitter_client=twitter_client)
-
-    async def change_twitter_name(self, twitter_client, change_back: bool = False):
+    async def change_twitter_name(self, twitter_client):
         name_now = twitter_client.twitter_account.name
-        if change_back:
-            if "π²" in name_now:
-                name_now = twitter_client.twitter_account.name
-                result = re.sub(r'π²', '', name_now).strip()
-                return await twitter_client.change_name(name=result)
-            else:
-                logger.debug(f"{self.user} already have nickname without π²")
-                return True
-
         if "π²" in name_now:
-            logger.info(f"{self.user} already have π² in nickname")
-            return True
+            name_now = twitter_client.twitter_account.name
+            result = re.sub(r'π²', '', name_now).strip()
+            return await twitter_client.change_name(name=result)
         return await twitter_client.change_name(name=twitter_client.twitter_account.name + "π²")
 
     async def connect_twitter_to_portal(self, twitter_client):
