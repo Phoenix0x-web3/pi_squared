@@ -186,7 +186,6 @@ class QuestsClient(BaseHttpClient):
             name_now = twitter_client.twitter_account.name
             result = re.sub(r'π²', '', name_now).strip()
             return await twitter_client.change_name(name=result)
-        return await twitter_client.change_name(name=twitter_client.twitter_account.name + "π²")
 
     async def connect_twitter_to_portal(self, twitter_client):
         check_connect = await self.check_twitter_connect()
