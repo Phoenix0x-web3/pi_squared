@@ -102,7 +102,7 @@ class TwitterClient():
 
         if self.twitter_account.status == twitter.AccountStatus.GOOD:
             logger.success(f"{self.user} Twitter client initialized")
-            update_twitter_token(private_key=self.user.private_key, updated_token=self.twitter_account.auth_token)
+            update_twitter_token(id=self.user.id, updated_token=self.twitter_account.auth_token)
             return True
         else:
             error_msg = f"Problem with Twitter account status: {self.twitter_account.status}"
@@ -314,7 +314,56 @@ class TwitterClient():
             logger.warning(f"{self.user} Failed to like")
             return False
 
+    async def change_name(self, name: str) -> bool:
+        """
+        Change name
 
+        Args:
+            name: New name for account
+
+        Returns:
+            Success status
+        """
+
+        if not self.twitter_client:
+            initialize = await self.initialize()
+            if not initialize:
+                raise Exception("Can't initialize twitter client")
+
+        logger.debug(self.twitter_account.name)
+        result = await self.twitter_client.change_name(name)
+
+        if result:
+            logger.success(f"{self.user} username change to {name} successful")
+            return True
+        else:
+            logger.warning(f"{self.user} Failed change to {name} username")
+            return False
+
+    async def change_username(self, username: str) -> bool:
+        """
+        Change username
+
+        Args:
+            username: New username for account
+
+        Returns:
+            Success status
+        """
+
+        if not self.twitter_client:
+            initialize = await self.initialize()
+            if not initialize:
+                raise Exception("Can't initialize twitter client")
+
+        username = await self.twitter_client.change_username(username)
+
+        if username:
+            logger.success(f"{self.user} username change to {username} successful")
+            return True
+        else:
+            logger.warning(f"{self.user} Failed change to {username} username")
+            return False
 
 
     async def connect_twitter_to_site_oauth(self, twitter_auth_url:str) -> TwitterOauthData:

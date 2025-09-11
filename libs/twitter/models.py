@@ -62,6 +62,7 @@ class User(BaseModel):
             {
                 "id": int(data.get("rest_id", 0)),
                 "username": legacy.get("screen_name", ""),
+                "name": legacy.get("name", ""),
                 # "created_at": to_datetime(legacy.get("created_at")),
                 "raw_data": data,
             }

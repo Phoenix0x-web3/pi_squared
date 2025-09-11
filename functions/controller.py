@@ -31,7 +31,6 @@ class Controller:
         self.auth_client = AuthClient(user=self.wallet)
         self.quests_client = QuestsClient(user=self.wallet)
 
-
     async def register(self):
         return await self.auth_client.login()
     

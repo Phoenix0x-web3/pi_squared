@@ -78,6 +78,10 @@ async def activity(action: int):
         wallets = [wallet for wallet in wallets if wallet.bearer_token]
         await execute(wallets, run_clicker)
 
+    if action == 5:
+        wallets = [wallet for wallet in wallets if wallet.bearer_token]
+        await execute(wallets, complete_test)
+
 async def run_all_tasks(wallet):
     
     await random_sleep_before_start(wallet=wallet)
