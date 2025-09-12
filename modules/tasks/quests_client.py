@@ -4,6 +4,8 @@ import random
 from loguru import logger
 
 from data.settings import Settings
+from utils.discord.discord import DiscordOAuth
+from utils.db_api.wallet_api import update_points_and_top, update_discord_connect
 from utils.twitter.twitter_client import TwitterClient
 from .http_client import BaseHttpClient
 
@@ -23,6 +25,8 @@ class QuestsClient(BaseHttpClient):
         for i, task in enumerate(uncompleted_tasks):
             task_id = task['id']
             task_title = task['title']
+            if not self.user.discord_connected and 60 >= random.randint(1, 100):
+                await self.connect_discord()
             
             if task.get('taskName') == 'quiz':
                 arguments = task.get('arguments', [])
@@ -109,7 +113,19 @@ class QuestsClient(BaseHttpClient):
             await asyncio.sleep(random_sleep)
 
         logger.success(f"{self.user} | {self.__module__ } | completed or already completed all available quests")
+        await self.get_and_update_points()
         return True   
+
+    async def get_and_update_points(self):
+        success, data = await self.request(url="https://pisquared-api.pulsar.money/api/v1/pulsar/challenges/pi-squared/me/1", method="GET")
+        logger.debug(data)
+        if success and isinstance(data, dict):
+            points = int(float(data['totalPoints']))
+            rank = data['rank']
+            logger.success(f"{self.user} user have {points} points and {rank} Rank")
+            return update_points_and_top(id=self.user.id, points=int(points), top=int(rank))
+        return False
+
 
     async def do_task_request(self, task_guid: str, extra_arguments: list = []):
         json_data = {
@@ -188,7 +204,7 @@ class QuestsClient(BaseHttpClient):
             return await twitter_client.change_name(name=result)
 
     async def connect_twitter_to_portal(self, twitter_client):
-        check_connect = await self.check_twitter_connect()
+        check_connect = await self.check_media_connect(media='twitter')
         if check_connect:
             logger.info(f"{self.user} already have connected twitter")
             return True
@@ -199,7 +215,7 @@ class QuestsClient(BaseHttpClient):
         if not link:
             return False
         await twitter_client.connect_twitter_to_site_oauth2(twitter_auth_url=str(link))
-        check_connect = await self.check_twitter_connect()
+        check_connect = await self.check_media_connect(media='twitter')
         if check_connect:
             logger.success(f"{self.user} success connect twitter to site")
             await asyncio.sleep(5)
@@ -208,9 +224,12 @@ class QuestsClient(BaseHttpClient):
             logger.warning(f"{self.user} can't connect twitter to site")
             return False
 
-    async def check_twitter_connect(self):
+    async def check_media_connect(self, media: str):
         _, data = await self.request(url="https://pisquared-api.pulsar.money/api/v1/pulsar/social-pay/me", method="GET")
-        return data['twitterMetadata']
+        if media == "twitter":
+            return data['twitterMetadata']
+        else:
+            return data['discordMetadata']
 
     async def request_twitter_link(self):
         json_data = {
@@ -219,3 +238,33 @@ class QuestsClient(BaseHttpClient):
         }
         _, data = await self.request(url="https://pisquared-api.pulsar.money/api/v1/pulsar/social-pay/register/twitter", method="POST", json_data=json_data)
         return data
+
+    async def request_discord_link(self):
+        _, data = await self.request(url="https://pisquared-api.pulsar.money/api/v1/pulsar/social-pay/register/discord?redirectUri=https://portal.pi2.network/quests", method="GET")
+        return data
+
+    async def connect_discord(self):
+        check_connect = await self.check_media_connect(media='discord')
+        if check_connect:
+            logger.debug(f"{self.user} already have connected discord")
+            update_discord_connect(id=self.user.id)
+            return True
+        if not self.user.discord_token or self.user.discord_status != "OK":
+            logger.debug(f"{self.user} can't connect discord. Not discord token or discord status not OK")
+            return False
+        link = await self.request_discord_link()
+        if not link:
+            return False
+
+        discord = DiscordOAuth(wallet=self.user)
+        oauth_url, state = await discord.start_oauth2(oauth_url=str(link))
+        _ = await self.browser.get(url=oauth_url)
+        check_connect = await self.check_media_connect(media='discord')
+        if check_connect:
+            logger.success(f"{self.user} success connect discord to site")
+            update_discord_connect(id=self.user.id)
+            await asyncio.sleep(5)
+            return True
+        else:
+            logger.warning(f"{self.user} can't connect discord to site")
+            return False

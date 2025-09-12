@@ -749,7 +749,7 @@ class DiscordOAuth:
             locale: str = "en-US",
             cookies: Optional[Dict[str, str]] = None,
             session: Optional[BaseAsyncSession] = None,
-            guild_id: str
+            guild_id: str | None = None
     ):
         self.wallet = wallet
         self.proxy = self.wallet.discord_proxy if self.wallet.discord_proxy else wallet.proxy

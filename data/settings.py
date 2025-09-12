@@ -29,8 +29,6 @@ class Settings(Singleton):
         self.random_pause_wallet_after_completion_min = json_data.get("random_pause_wallet_after_completion", {}).get('min')
         self.random_pause_wallet_after_completion_max = json_data.get("random_pause_wallet_after_completion", {}).get('max')
         
-        self.tg_bot_id = json_data.get("tg_bot_id", "")
-        self.tg_user_id = json_data.get("tg_user_id", "")
         self.retry = json_data.get("retry", 3)
         self.resources_max_failures = json_data.get("resources_max_failures", 3)
         self.auto_replace_proxy = json_data.get("auto_replace_proxy ", True)

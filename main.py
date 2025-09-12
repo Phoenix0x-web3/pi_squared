@@ -8,6 +8,7 @@ from rich.console import Console
 from utils.create_files import create_files, reset_folder
 from functions.activity import activity
 from utils.db_import_export_sync import Import, Export, Sync
+from utils.db_api import migrate
 from utils.output import show_channel_info
 from utils.git_version import check_for_updates
 
@@ -20,6 +21,7 @@ PROJECT_ACTIONS =   [
                     "2. Start Register",
                     "3. Complete Quests",
                     "4. Clicker Game",
+                    "5. Update Points and Rank",
                     "Back"
                     ]
 
@@ -93,6 +95,9 @@ async def choose_action():
         
     elif "4. Clicker Game" == action:
         await activity(action=4)
+
+    elif "5. Update Points and Rank" == action:
+        await activity(action=5)
 
     elif action == "1. Reset files Folder":
         console.print("This action will delete the files folder and reset it.") 

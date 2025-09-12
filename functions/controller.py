@@ -134,3 +134,8 @@ class Controller:
                 break
 
         await self.quests_client.complete_quests()
+
+    async def update_points(self):
+        session = await self.register()
+        if session:
+            return await self.quests_client.get_and_update_points()

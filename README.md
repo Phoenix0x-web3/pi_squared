@@ -16,6 +16,7 @@ Pi Squared Network is building the Verifiable Settlement Layer (VSL) — a decen
 - Register with email(gmx, icloud)
 - Pi2 Reactor
 - Quests
+- Social tasks(twitter, discord)
 
 
 ## Requirements
@@ -23,6 +24,8 @@ Pi Squared Network is building the Verifiable Settlement Layer (VSL) — a decen
 - Emails
 - Proxy (optional)
 - Twitter auth tokens (optional) 
+- Discord auth tokens (optional) 
+- Discord proxy (optional) 
 
 
 ## Installation
@@ -58,6 +61,8 @@ python main.py
 pharos_network/
 ├── data/                   #Web3 intarface
 ├── files/
+|   ├── discord_tokens.txt  # Discord auth token (optional)
+|   ├── discord_proxy.txt   # Discord proxy (optional)
 |   ├── email_data.txt      # Emails for register
 |   ├── twitter_tokens.txt  # Twitter auth tokens (optional)
 |   ├── reserve_twitter.txt # Reserved Twitter auth tokens
@@ -76,6 +81,8 @@ pharos_network/
 - `reserve_proxy.txt`: One proxy per line (format: `http://user:pass@ip:port`)
 - `twitter_tokens.txt`: One token per line 
 - `reserve_twitter.txt`: One token per line 
+- `discord_tokens.txt`: One token per line 
+- `discord_proxy.txt`: One proxy per line (format: `http://user:pass@ip:port`). If you want to use different proxy for discord task
 
 ### 2. Main configurations
 ```yaml
@@ -100,6 +107,9 @@ exact_wallets_to_run: []
 # the log level for the application. Options: DEBUG, INFO, WARNING, ERROR
 log_level : INFO
 
+# Discord: Use different proxies to join discord server
+discord_proxy: false
+
 # Delay before running the same wallet again after it has completed all actions (1 - 2 hrs default)
 random_pause_wallet_after_completion:
   min: 3600
@@ -116,12 +126,6 @@ resources_max_failures: 3
 auto_replace_proxy: true
 #Perform automatic replacement from twitter reserve files
 auto_replace_twitter: false  
-
-# Telegram Bot ID for notifications
-tg_bot_id: ''
-
-# You can find your chat ID by messaging @userinfobot or using https://web.telegram.org/. (example 1540239116)
-tg_user_id: ''
 ```
 
 ### 3. Module Configurations
