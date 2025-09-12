@@ -76,7 +76,7 @@ class Import:
         wallets: List[Dict[str, Optional[str]]] = []
         for i in range(record_count):
             wallets.append({
-                "email_data": email_data[i] if i < len(email_data) else None,
+                "email_data": email_data[i],
                 "proxy": parse_proxy(pick_proxy(proxies, i)),
                 "twitter_token": twitter_tokens[i] if i < len(twitter_tokens) else None,
                 "discord_token": discord_tokens[i] if i < len(discord_tokens) else None,
@@ -164,7 +164,6 @@ class Sync:
 
         proxies        = read_lines("proxy.txt")
         twitter_tokens = read_lines("twitter_tokens.txt")
-        email_data = read_lines("email_data.txt")
         discord_tokens = read_lines("discord_tokens.txt")
         discord_proxies = read_lines("discord_proxy.txt")
         
@@ -175,7 +174,6 @@ class Sync:
             wallets.append({
                 "proxy": parse_proxy(pick_proxy(proxies, i)),
                 "twitter_token": twitter_tokens[i] if i < len(twitter_tokens) else None,
-                "email_data": email_data[i] if i < len(email_data) else None,
                 "discord_token": discord_tokens[i] if i < len(discord_tokens) else None,
                 "discord_proxy": parse_proxy(discord_proxies[i]) if i < len(discord_proxies) else None
             })
