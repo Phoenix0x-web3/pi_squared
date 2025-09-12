@@ -107,9 +107,6 @@ exact_wallets_to_run: []
 # the log level for the application. Options: DEBUG, INFO, WARNING, ERROR
 log_level : INFO
 
-# Discord: Use different proxies to join discord server
-discord_proxy: false
-
 # Delay before running the same wallet again after it has completed all actions (1 - 2 hrs default)
 random_pause_wallet_after_completion:
   min: 3600

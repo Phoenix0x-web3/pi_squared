@@ -18,9 +18,6 @@ shuffle_wallets: true
 # Example: [1, 3, 8] - will run only 1, 3 and 8 wallets
 exact_wallets_to_run: []
 
-# Discord: Use different proxies to join discord server
-discord_proxy: false
-
 #Check for github updates
 check_git_updates: true
 
