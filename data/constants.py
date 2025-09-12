@@ -1,0 +1,2 @@
+PROJECT_FULL_NAME = "Pi Squared"
+PROJECT_SHORT_NAME = "PI Squared"
