@@ -78,6 +78,10 @@ async def activity(action: int):
         wallets = [wallet for wallet in wallets if wallet.bearer_token]
         await execute(wallets, run_clicker)
 
+    if action == 5:
+        wallets = [wallet for wallet in wallets if wallet.bearer_token]
+        await execute(wallets, update_points)
+
 async def run_all_tasks(wallet):
     
     await random_sleep_before_start(wallet=wallet)
@@ -111,3 +115,11 @@ async def run_clicker(wallet):
         logger.success(c)
     except Exception as e:
         logger.exception(e)
+
+async def update_points(wallet):
+    
+    await random_sleep_before_start(wallet=wallet)
+    
+    controller = Controller(wallet=wallet)
+
+    c = await controller.update_points()

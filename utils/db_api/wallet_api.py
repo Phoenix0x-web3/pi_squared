@@ -33,6 +33,23 @@ def save_refresh_token(id: int, refresh_token: str) -> bool:
     db.commit()
     return True
 
+def update_points_and_top(id: int, points: int, top: int) -> bool:
+    wallet = db.one(Wallet, Wallet.id==id)
+    if not wallet:
+        return False
+    wallet.points = points
+    wallet.top = top
+    db.commit()
+    return True
+
+def update_discord_connect(id:int) -> bool:
+    wallet = db.one(Wallet, Wallet.id==id)
+    if not wallet:
+        return False
+    wallet.discord_connected = True
+    db.commit()
+    return True
+
 def update_twitter_token(id: int, updated_token: str | None) -> bool:
     """
     Updates the Twitter token for a wallet with the given private_key.

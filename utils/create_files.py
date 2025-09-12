@@ -12,6 +12,8 @@ REQUIRED_FILES = [
     "email_data.txt",
     "reserve_proxy.txt",
     "reserve_twitter.txt",
+    "discord_tokens.txt",
+    "discord_proxy.txt",
 ]
 
 def create_files() -> None:

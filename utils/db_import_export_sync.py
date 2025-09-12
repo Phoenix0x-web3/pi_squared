@@ -68,6 +68,8 @@ class Import:
         proxies        = read_lines("proxy.txt")
         twitter_tokens = read_lines("twitter_tokens.txt")
         email_data = read_lines("email_data.txt")
+        discord_tokens = read_lines("discord_tokens.txt")
+        discord_proxies = read_lines("discord_proxy.txt")
 
         record_count = len(email_data)
 
@@ -77,6 +79,8 @@ class Import:
                 "email_data": email_data[i] if i < len(email_data) else None,
                 "proxy": parse_proxy(pick_proxy(proxies, i)),
                 "twitter_token": twitter_tokens[i] if i < len(twitter_tokens) else None,
+                "discord_token": discord_tokens[i] if i < len(discord_tokens) else None,
+                "discord_proxy": parse_proxy(discord_proxies[i]) if i < len(discord_proxies) else None
             })
 
         return wallets
@@ -114,6 +118,15 @@ class Import:
                     wallet_instance.email_data = wl.email_data
                     changed = True
 
+                if hasattr(wallet_instance, "discord_token") and wallet_instance.discord_token != wl.discord_token:
+                    wallet_instance.discord_token = wl.discord_token
+                    changed = True
+
+                if hasattr(wallet_instance, "discord_proxy") and wallet_instance.discord_proxy != parse_proxy(wl.discord_proxy):
+                    wallet_instance.discord_proxy = wl.discord_proxy
+                    changed = True
+
+
                 if changed:
                     db.commit()
                     edited.append(wallet_instance)
@@ -123,11 +136,16 @@ class Import:
             wallet_instance = Wallet(
                 proxy=wl.proxy,
                 twitter_token=wl.twitter_token,
+                discord_token=wl.discord_token,
                 email_data=wl.email_data,
+                discord_proxy=wl.discord_proxy,
             )
 
             if not wallet_instance.twitter_token:
                 logger.warning(f'{wallet_instance.id} | Twitter Token not found, Twitter Action will be skipped')
+
+            if not wallet_instance.discord_token:
+                logger.warning(f'{wallet_instance.id} | Discord Token not found, Discord Action will be skipped')
 
             db.insert(wallet_instance)
             imported.append(wallet_instance)
@@ -147,6 +165,8 @@ class Sync:
         proxies        = read_lines("proxy.txt")
         twitter_tokens = read_lines("twitter_tokens.txt")
         email_data = read_lines("email_data.txt")
+        discord_tokens = read_lines("discord_tokens.txt")
+        discord_proxies = read_lines("discord_proxy.txt")
         
         record_count = len(wallets)
 
@@ -156,6 +176,8 @@ class Sync:
                 "proxy": parse_proxy(pick_proxy(proxies, i)),
                 "twitter_token": twitter_tokens[i] if i < len(twitter_tokens) else None,
                 "email_data": email_data[i] if i < len(email_data) else None,
+                "discord_token": discord_tokens[i] if i < len(discord_tokens) else None,
+                "discord_proxy": parse_proxy(discord_proxies[i]) if i < len(discord_proxies) else None
             })
 
         return wallets
@@ -200,6 +222,14 @@ class Sync:
                     wallet_instance.twitter_token = wallet_data.twitter_token
                     changed = True
 
+                if hasattr(wallet_instance, "discord_token") and wallet_instance.discord_token != wallet_data.discord_token:
+                    wallet_instance.discord_token = wallet_data.discord_token
+                    changed = True
+
+                if hasattr(wallet_instance, "discord_proxy") and wallet_instance.discord_proxy != wallet_data.discord_proxy:
+                    wallet_instance.discord_proxy = wallet_data.discord_proxy
+                    changed = True
+
                 if changed:
                     db.commit()
                     edited.append(wallet_instance)
@@ -213,6 +243,8 @@ class Export:
         "proxy":         "exported_proxy.txt",
         "twitter_token": "exported_twitter_tokens.txt",
         "email_data": "exported_email_data.txt",
+        "discord_token": "exported_discord_tokens.txt",
+        "discord_proxy": "exported_discord_proxy.txt",
     }
 
     @staticmethod
@@ -238,6 +270,8 @@ class Export:
             buf["proxy"].append(w.proxy or "")
             buf["twitter_token"].append(w.twitter_token or "")
             buf["email_data"].append(w.email_data or "")
+            buf["discord_token"].append(w.discord_token or "")
+            buf["discord_proxy"].append(w.discord_proxy or "")
 
         for field, filename in Export._FILES.items():
             Export._write_lines(filename, buf[field])

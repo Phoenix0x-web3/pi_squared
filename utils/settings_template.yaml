@@ -55,12 +55,6 @@ clicks:
   max: 154
 
 
-# Telegram Bot ID for notifications
-tg_bot_id: ""
-
-# You can find your chat ID by messaging @userinfobot or using https://web.telegram.org/. (example 1540239116)
-tg_user_id: ""
-
 #Maximum possible number of errors before replacement
 resources_max_failures: 3
 #Perform automatic replacement from proxy reserve files

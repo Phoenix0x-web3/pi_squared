@@ -124,7 +124,7 @@ class DB:
         columns = [col['name'] for col in inspector.get_columns(table_name)]
 
         if column_name in columns:
-            logger.warning(f"Column '{column_name}' already exists in table '{table_name}'.")
+            logger.debug(f"Column '{column_name}' already exists in table '{table_name}'.")
             return
 
         try:
