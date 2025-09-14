@@ -1,9 +1,6 @@
-import random
-from datetime import datetime
-
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped, mapped_column
-from data.settings import Settings
+from data.constants import PROJECT_SHORT_NAME
 
 class Base(DeclarativeBase):
     pass
@@ -30,5 +27,5 @@ class Wallet(Base):
 
 
     def __repr__(self):
-        return f'[{self.id}]'
+        return f'[{PROJECT_SHORT_NAME} | {self.id}]'
         
