@@ -13,7 +13,7 @@ More info:
 Pi Squared Network is building the Verifiable Settlement Layer (VSL) — a decentralized infrastructure for fast, scalable, and cryptographically verifiable transactions between applications, blockchains, and AI agents.
 
 ## Functionality
-- Register with email(gmx, icloud)
+- Register with email(icloud)
 - Pi2 Reactor
 - Quests
 - Social tasks(twitter, discord)
@@ -76,13 +76,31 @@ pharos_network/
 ## Configuration
 
 ### 1. files folder
-- `email_data.txt`: Work with emails gmx(format: `email:pass`) and icloud(format: `email:pass:fake_email`)
+- `email_data.txt`: Work with emails icloud(format: `primary_email:app-specific-password:fake_email`)
 - `proxy.txt`: One proxy per line (format: `http://user:pass@ip:port`)
 - `reserve_proxy.txt`: One proxy per line (format: `http://user:pass@ip:port`)
 - `twitter_tokens.txt`: One token per line 
 - `reserve_twitter.txt`: One token per line 
 - `discord_tokens.txt`: One token per line 
 - `discord_proxy.txt`: One proxy per line (format: `http://user:pass@ip:port`). If you want to use different proxy for discord task
+
+### iCloud Mail Setup 
+
+To use iCloud with your scripts you need a primary (real) iCloud email. After that you can generate additional (alias) emails on your iPhone or Mac. Note: this requires a paid iCloud+ subscription (cost $0.99 / month).
+
+#### How to generate additional (hidden) emails
+
+On iPhone / Mac go to: Settings → [your name] → iCloud → Hide My Email.
+
+Create a new address. You can manage or deactivate aliases in the same place.
+
+You can generate up to 20 addresses this way and it’s safer to do it 1–2 times per day — generating much more often may lead to account restrictions or temporary blocks.
+
+#### App-specific password for IMAP
+
+Go to Apple account support ([support.apple.com](https://support.apple.com/en-us/102525)) and generate an `app-specific password` so IMAP/SMTP access will work.
+
+Place the credentials in your `email_data.txt` file using this format: `primary_email:app-specific-password:fake_email`
 
 ### 2. Main configurations
 ```yaml
