@@ -38,6 +38,10 @@ async def execute(wallets : List[Wallet], task_func, random_pause_wallet_after_c
         if random_pause_wallet_after_completion == 0:
             break
  
+        # update dynamically the pause time
+        random_pause_wallet_after_completion = random.randint(Settings().random_pause_wallet_after_completion_min,
+                                                              Settings().random_pause_wallet_after_completion_max)
+        
         next_run = datetime.now() + timedelta(seconds=random_pause_wallet_after_completion)
         logger.info(
             f"Sleeping {random_pause_wallet_after_completion} seconds. "
@@ -66,7 +70,8 @@ async def activity(action: int):
             ]
 
     if action == 1:
-        await execute(wallets, run_all_tasks)
+        await execute(wallets, run_all_tasks, random.randint(Settings().random_pause_wallet_after_completion_min, 
+                                                             Settings().random_pause_wallet_after_completion_max))
 
     if action == 2:
         await execute(wallets, register)
