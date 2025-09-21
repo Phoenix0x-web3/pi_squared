@@ -43,9 +43,7 @@ class Controller:
         session = await self.register()
         if not session:
             return False
-        total_play, best_score = await self.quests_client.get_game_stats()
-
-        await self.handle_clicker(total_play=total_play, best_score=best_score)
+        await self.handle_clicker( )
 
     @controller_log('PiClicker')
     async def clicker_controller(self, box: dict, clicks: int | None = None):
@@ -65,26 +63,10 @@ class Controller:
             show_viz=False,
         )
 
-    async def handle_clicker(self, total_play: int, best_score: int, number_of_games: int = None):
+    async def handle_clicker(self):
 
-        box = random.choice(BOX_SIZE_MAP)
-
-        if total_play >= 30 and best_score >= 105:
-            logger.success(f"{self.wallet} | {self.__controller__} | Clicker Handle | already played {total_play} games and have {best_score} best score")
-            return True
-
-        if number_of_games:
-            games_to_play = number_of_games
-
-        else:
-            random_total_play = random.randint(Settings().games_min, Settings().games_max)
-            random_total_play -= total_play
-            games_to_play = random_total_play
-
-            if games_to_play <= 0:
-                logger.success(f"{self.wallet} | {self.__controller__} | Clicker Handle | already played {total_play} games")
-                return True
-
+        games_to_play = random.randint(Settings().games_min, Settings().games_max)
+        
         # generate random clicks
         clicks_list = [random.randint(Settings().clicks_min, Settings().clicks_max) for _ in range(games_to_play)]
 
@@ -94,9 +76,10 @@ class Controller:
             clicks_list[idx] = random.randint(106, 150)
 
         random.shuffle(clicks_list)
-
+        logger.info(f"{self.wallet} | {self.__controller__} | Clicker Handle | Playing {games_to_play} games")
         for clicks in clicks_list:
             try:
+                box = random.choice(BOX_SIZE_MAP)
                 clicks_result = await self.clicker_controller(box=box, clicks=clicks)
                 logger.success(clicks_result)
                 random_sleep = random.randint(Settings().random_pause_between_actions_min,
@@ -104,35 +87,22 @@ class Controller:
                 await asyncio.sleep(random_sleep)
 
             except Exception as e:
-                logger.error(f"{e} | can't play game, continue")
+                logger.error(f"{self.wallet} {e} | can't play game, continue")
                 await asyncio.sleep(5)
                 continue
         return True
 
-    async def run_all_tasks(self, timeout_s: int = 3600):
+    async def run_all_tasks(self):
         session = await self.register()
 
         if not session:
             return False
 
-        settings = Settings()
-        deadline = time.monotonic() + timeout_s
-        
-        while time.monotonic() < deadline:
- 
-            total_play, best_score = await self.quests_client.get_game_stats()
-            if random.random() < 0.60:  # 60% chance  
-                await self.quests_client.complete_quests(random_stop=True)
-
-            else:
-                #number_of_games = random.randint(1, 30)
-                number_of_games = random.randint(settings.games_min, settings.games_max)
-
-                await self.handle_clicker(total_play=total_play, best_score=best_score, number_of_games=number_of_games)
-                   
-            if total_play >= 30 and best_score >= 105:
-                break
-
+        if random.random() < 0.60:  # 60% chance  
+            await self.quests_client.complete_quests(random_stop=True)
+        else:
+            await self.handle_clicker()
+                
         await self.quests_client.complete_quests()
 
     async def update_points(self):
