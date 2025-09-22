@@ -73,6 +73,7 @@ class HSForm:
             mail_login, mail_pass, fake_mail = self.wallet.email_data.split(':')
         else:
             mail_login, mail_pass = self.wallet.email_data.split(':', 1)
+            fake_mail = None
             
         email = fake_mail if fake_mail else mail_login 
         
