@@ -70,11 +70,11 @@ class HSForm:
             return f"Success | fill_form | HS Form already filled"
         
         if "icloud" in self.wallet.email_data:
-            self.mail_login, self.mail_pass, self.fake_mail = self.wallet.email_data.split(':')
+            mail_login, smail_pass, fake_mail = self.wallet.email_data.split(':')
         else:
-            self.mail_login, self.mail_pass = self.wallet.email_data.split(':', 1)
+            mail_login, mail_pass = self.wallet.email_data.split(':', 1)
             
-        email = self.fake_mail if self.fake_mail else self.mail_login 
+        email = fake_mail if fake_mail else mail_login 
         
         if not await self.is_valid_email(email):
             set_fs_form_status(self.wallet.id, HSFormStatus.BAD)
