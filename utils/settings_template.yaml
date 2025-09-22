@@ -46,13 +46,13 @@ random_pause_start_wallet:
 
 #Games
 games:
-  min: 30
+  min: 5
   max: 40
 
-#Clicks: !Maximum is 170
+#Clicks: Maximum is 220
 clicks:
   min: 60
-  max: 154
+  max: 165
 
 
 #Maximum possible number of errors before replacement
