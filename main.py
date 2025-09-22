@@ -8,10 +8,11 @@ from rich.console import Console
 from utils.create_files import create_files, reset_folder
 from functions.activity import activity
 from utils.db_import_export_sync import Import, Export, Sync
-from utils.db_api import migrate
 from utils.output import show_channel_info
 from utils.git_version import check_for_updates
 from data.constants import PROJECT_NAME
+from utils.db_api.models import Wallet
+from utils.db_api.wallet_api import db
 
 console = Console()
 
@@ -24,6 +25,7 @@ PROJECT_ACTIONS =   [
                     "3. Complete Quests",
                     "4. Clicker Game",
                     "5. Update Points and Rank",
+                    "6. Send HS Form",
                     "Back"
                     ]
 
@@ -100,6 +102,10 @@ async def choose_action():
 
     elif "5. Update Points and Rank" == action:
         await activity(action=5)
+    
+    elif "6. Send HS Form" == action:
+        await activity(action=6)    
+        
 
     elif action == "1. Reset files Folder":
         console.print("This action will delete the files folder and reset it.") 
@@ -118,6 +124,9 @@ async def main():
     create_files()
 
     await check_for_updates(repo_name=PROJECT_NAME)
+    
+    db.ensure_model_columns(Wallet)
+        
     await choose_action()
 
 if __name__ == '__main__':

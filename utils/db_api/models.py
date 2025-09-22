@@ -24,6 +24,8 @@ class Wallet(Base):
     completed: Mapped[bool] = mapped_column(default=False)
     bearer_token: Mapped[str] = mapped_column(default=None, nullable=True)
     refresh_token: Mapped[str] = mapped_column(default=None, nullable=True)
+    hs_form_status: Mapped[str] = mapped_column(default=None, nullable=True)
+    
 
 
     def __repr__(self):
