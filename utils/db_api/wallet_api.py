@@ -106,6 +106,14 @@ def mark_twitter_as_bad(id: int) -> bool:
     db.commit()
     return True
 
+def set_fs_form_status(id: int, status : str) -> bool:
+    wallet = db.one(Wallet, Wallet.id == id)
+    if not wallet:
+        return False
+    wallet.hs_form_status = status
+    db.commit()
+    return True
+
 def get_wallets_with_bad_proxy() -> list:
     return db.all(Wallet, Wallet.proxy_status == "BAD")
 

@@ -84,8 +84,10 @@ async def activity(action: int):
         await execute(wallets, run_clicker)
 
     if action == 5:
-        wallets = [wallet for wallet in wallets if wallet.bearer_token]
         await execute(wallets, update_points)
+        
+    if action == 6:
+        await execute(wallets, fill_hs_form)
 
 async def run_all_tasks(wallet):
     
@@ -128,3 +130,19 @@ async def update_points(wallet):
     controller = Controller(wallet=wallet)
 
     c = await controller.update_points()
+
+
+async def fill_hs_form(wallet):
+    await random_sleep_before_start(wallet=wallet)
+
+    controller = Controller(wallet=wallet)
+    try:
+        status = await controller.fill_hs_form()
+        
+        if 'Failed' in status:
+            logger.error(status)
+        else:
+            logger.success(status)
+        
+    except Exception as e:
+        logger.exception(e)

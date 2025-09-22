@@ -11,6 +11,7 @@ from modules.tasks.quests_client import QuestsClient
 from modules.tasks.authorization import AuthClient
 from utils.db_api.models import Wallet
 from utils.logs_decorator import controller_log
+from modules.hs_form import HSForm
 
 BOX_SIZE_MAP = [
     # {'BASE_X': 442, 'BASE_Y': 543, 'CONTAINER_PX': 276},
@@ -109,3 +110,9 @@ class Controller:
         session = await self.register()
         if session:
             return await self.quests_client.get_and_update_points()
+
+    @controller_log('HS Form')
+    async def fill_hs_form(self):
+        instance = HSForm(wallet=self.wallet)
+        
+        return await instance.fill_form()
