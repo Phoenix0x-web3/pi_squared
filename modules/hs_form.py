@@ -70,7 +70,7 @@ class HSForm:
             return f"Success | fill_form | HS Form already filled"
         
         if "icloud" in self.wallet.email_data:
-            mail_login, smail_pass, fake_mail = self.wallet.email_data.split(':')
+            mail_login, mail_pass, fake_mail = self.wallet.email_data.split(':')
         else:
             mail_login, mail_pass = self.wallet.email_data.split(':', 1)
             
@@ -79,8 +79,6 @@ class HSForm:
         if not await self.is_valid_email(email):
             set_fs_form_status(self.wallet.id, HSFormStatus.BAD)
             return f"Failed | fill_form | invalid email for HS Form: {email}"
-        
-        logger.info(f"{self.wallet} | {self.__module__} | starting HS Form fill")
         
         url = "https://forms-eu1.hsforms.com/submissions/v3/public/submit/formsnext/multipart/145965351/984a6e3c-89ca-4136-8085-c69a38b419fa/json?hs_static_app=forms-embed&hs_static_app_version=1.9861&X-HubSpot-Static-App-Info=forms-embed-1.9861"  
              
