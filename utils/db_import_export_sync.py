@@ -218,10 +218,12 @@ class Sync:
 
                 if hasattr(wallet_instance, "twitter_token") and wallet_instance.twitter_token != wallet_data.twitter_token:
                     wallet_instance.twitter_token = wallet_data.twitter_token
+                    wallet_instance.twitter_status = None
                     changed = True
 
                 if hasattr(wallet_instance, "discord_token") and wallet_instance.discord_token != wallet_data.discord_token:
                     wallet_instance.discord_token = wallet_data.discord_token
+                    wallet_instance.discord_status = None
                     changed = True
 
                 if hasattr(wallet_instance, "discord_proxy") and wallet_instance.discord_proxy != wallet_data.discord_proxy:
