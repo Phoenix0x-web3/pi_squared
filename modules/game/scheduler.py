@@ -1,11 +1,10 @@
 # modules/game/scheduler.py
 import random
 import time
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 
 class TargetScheduler:
-
     def __init__(self, colors: List[str], interval_ms: int, *, start_color: Optional[str] = None):
         self.colors = colors[:]
         self.interval_ms = int(interval_ms)
@@ -24,7 +23,6 @@ class TargetScheduler:
         self._last = now
 
     def tick(self) -> Tuple[str, int, bool]:
-
         now = time.perf_counter()
         elapsed_ms = (now - self._last) * 1000.0
         changed = False

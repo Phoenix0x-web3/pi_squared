@@ -5,20 +5,21 @@ import json
 import math
 import random
 import time
-from typing import Any, Dict, Optional, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
 from loguru import logger
 
 from modules.game.core import ReactorGameEngine
-from modules.game.orb import ReactorGeometry, FrontAccurateOrbArena, StaticArenaOverlay, ANSI
+from modules.game.orb import FrontAccurateOrbArena, ReactorGeometry
 from modules.game.scheduler import TargetScheduler
 from modules.game.stages import default_stage_plan
-from utils.retry import async_retry
 from utils.browser import Browser
 from utils.db_api.models import Wallet
+from utils.retry import async_retry
 
 
 class PiClicker:
-    __module__ = 'Pi Clicker'
+    __module__ = "Pi Clicker"
     BASE = "https://pisquared-api.pulsar.money/api/v1"
 
     _WORKERS = 8
@@ -29,14 +30,14 @@ class PiClicker:
         self._auth = self.wallet.bearer_token
 
         self.base_headers = {
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Content-Type': 'application/json',
-            'Connection': 'keep-alive',
-            'Authorization': f" Bearer {self.wallet.bearer_token}",
-            'Origin': 'https://portal.pi2.network',
-            'Referer': 'https://portal.pi2.network/',
-            'Host': 'pisquared-api.pulsar.money',
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Content-Type": "application/json",
+            "Connection": "keep-alive",
+            "Authorization": f" Bearer {self.wallet.bearer_token}",
+            "Origin": "https://portal.pi2.network",
+            "Referer": "https://portal.pi2.network/",
+            "Host": "pisquared-api.pulsar.money",
         }
 
         self._q: Optional[asyncio.Queue] = None
@@ -46,10 +47,9 @@ class PiClicker:
         self._session_id: Optional[str] = None
         self._STOP = object()
 
-
     @async_retry()
     async def start_game_session(self):
-        url = f'{self.BASE}/game-sessions/start'
+        url = f"{self.BASE}/game-sessions/start"
         r = await self.session.post(url=url, headers=self.base_headers, timeout=20)
 
         if not r.status_code <= 202:
@@ -116,26 +116,24 @@ class PiClicker:
         self._q = asyncio.Queue()
         self._seq = 0
         self._stream_running = True
-        self._workers = [
-            asyncio.create_task(self._click_worker(i))
-            for i in range(self._WORKERS)
-        ]
+        self._workers = [asyncio.create_task(self._click_worker(i)) for i in range(self._WORKERS)]
         logger.debug(f"{self.wallet} | {self.__module__} | click-stream started with {len(self._workers)} workers")
 
-    async def push_click(
-            self, *, x: int, y: int, color: str, is_correct: bool, energy_generated: int, timestamp_ms: int
-    ) -> None:
+    async def push_click(self, *, x: int, y: int, color: str, is_correct: bool, energy_generated: int, timestamp_ms: int) -> None:
         if not self._stream_running or self._q is None:
             raise RuntimeError("click-stream is not running")
         self._seq += 1
-        self._q.put_nowait({
-            "seq": self._seq,
-            "x": int(x), "y": int(y),
-            "color": color,
-            "isCorrect": bool(is_correct),
-            "energyGenerated": int(energy_generated),
-            "timestamp": int(timestamp_ms),
-        })
+        self._q.put_nowait(
+            {
+                "seq": self._seq,
+                "x": int(x),
+                "y": int(y),
+                "color": color,
+                "isCorrect": bool(is_correct),
+                "energyGenerated": int(energy_generated),
+                "timestamp": int(timestamp_ms),
+            }
+        )
 
     async def stop_click_stream(self) -> None:
         if not self._stream_running:
@@ -168,7 +166,7 @@ class PiClicker:
             finally:
                 await asyncio.sleep(0)
 
-    #@async_retry()
+    # @async_retry()
     async def _click_via(self, browser: Browser, session_id: str, item: Dict[str, Any]):
         url = f"{self.BASE}/game-sessions/{session_id}/click"
         json_data = {
@@ -184,18 +182,18 @@ class PiClicker:
             raise Exception(f"{r.status_code} | {r.text}")
         check = r.json()
 
-    async def run_session_with_engine(self,
-            base_x: int,
-            base_y: int,
-            clicks: int = 100,
-            container_px: int = 256,
-            show_viz: bool = True,
-            stage_speeds_ms: Optional[List[int]] = None,
-            tps_mode: str = "random", # 'peak' | 'avg' | 'random'
-            override_level: Optional[int] = None,
-            override_pi_stage: Optional[str] = None,
+    async def run_session_with_engine(
+        self,
+        base_x: int,
+        base_y: int,
+        clicks: int = 100,
+        container_px: int = 256,
+        show_viz: bool = True,
+        stage_speeds_ms: Optional[List[int]] = None,
+        tps_mode: str = "random",  # 'peak' | 'avg' | 'random'
+        override_level: Optional[int] = None,
+        override_pi_stage: Optional[str] = None,
     ):
-
         engine = ReactorGameEngine(default_stage_plan())
 
         geom = ReactorGeometry(container_px=container_px)
@@ -232,7 +230,6 @@ class PiClicker:
             target_color, ms_left, changed = sched.tick()
 
             if changed:
-
                 logger.debug(
                     f"{self.wallet} | {self.__module__} | COLOR→ {target_color} | stage={engine.current_stage_index} "
                     f"interval={sched.interval_ms}ms (prev lasted ~{sched.last_change_ms}ms)"
@@ -247,11 +244,12 @@ class PiClicker:
             else:
                 detected = target_color
 
-            is_ok = (detected == target_color)
+            is_ok = detected == target_color
             color_for_backend = detected
 
             await self.push_click(
-                x=x, y=y,
+                x=x,
+                y=y,
                 color=target_color,
                 is_correct=True,
                 energy_generated=1,
@@ -260,7 +258,7 @@ class PiClicker:
 
             logger.debug(f"{self.wallet} | {self.__module__} | queued x={x} y={y} color={target_color}")
 
-            #logger.debug(f"{self.wallet} | {self.__module__} | clicked x={x} y={y} color={target_color}")
+            # logger.debug(f"{self.wallet} | {self.__module__} | clicked x={x} y={y} color={target_color}")
 
             engine.register_click(energy_generated=(1 if is_ok else 0))
             i += 1
@@ -285,6 +283,6 @@ class PiClicker:
 
         end_resp = await self.end_game_session(session_id, payload=end_payload)
 
-        if end_resp.get('score') > 0:
+        if end_resp.get("score") > 0:
             result = f"[Score: {end_resp.get('score')}, TPS: {end_resp.get('tps')}, PiReached: {end_resp.get('piStageReached')}]"
             return f"Success Clicked {result}"

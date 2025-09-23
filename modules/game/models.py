@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import time
 from dataclasses import dataclass, field
 from typing import Optional
@@ -10,6 +11,7 @@ class Stage:
     Ступень раскрытия π².
     energy_required — накопленная энергия, НУЖНАЯ, чтобы ДОСТИЧЬ ЭТОЙ ступени.
     """
+
     pi_fragment: str
     energy_required: int
 
@@ -17,6 +19,7 @@ class Stage:
 @dataclass
 class ReactorMetrics:
     """Агрегируемые метрики сессии."""
+
     clicks: int = 0
     energy_total: int = 0
     t0: float = field(default_factory=time.time)

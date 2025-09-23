@@ -1,36 +1,37 @@
 import os
-import random
 from types import SimpleNamespace
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
 from loguru import logger
 
 from data.config import FILES_DIR
-
-from utils.db_api.wallet_api import db, get_wallet_by_email_data
 from utils.db_api.models import Wallet
+from utils.db_api.wallet_api import db, get_wallet_by_email_data
+
 
 def parse_proxy(proxy: str | None) -> Optional[str]:
     if not proxy:
         return None
-    if proxy.startswith('http'):
+    if proxy.startswith("http"):
         return proxy
-    elif "@" in proxy and not proxy.startswith('http'):
+    elif "@" in proxy and not proxy.startswith("http"):
         return "http://" + proxy
     else:
-        value = proxy.split(':')
+        value = proxy.split(":")
         if len(value) == 4:
             ip, port, login, password = value
-            return f'http://{login}:{password}@{ip}:{port}'
+            return f"http://{login}:{password}@{ip}:{port}"
         else:
             print(f"Invalid proxy format: {proxy}")
-            return None 
+            return None
 
-def pick_proxy(proxies : list, i: int) -> Optional[str]:
+
+def pick_proxy(proxies: list, i: int) -> Optional[str]:
     if not proxies:
         return None
     return proxies[i % len(proxies)]
-        
+
+
 def remove_line_from_file(value: str, filename: str) -> bool:
     file_path = os.path.join(FILES_DIR, filename)
 
@@ -52,20 +53,19 @@ def remove_line_from_file(value: str, filename: str) -> bool:
             f.write(line + "\n")
     return True
 
-def read_lines(path: str) -> List[str]:
 
+def read_lines(path: str) -> List[str]:
     file_path = os.path.join(FILES_DIR, path)
     if not os.path.isfile(file_path):
         return []
     with open(file_path, encoding="utf-8") as f:
         return [line.strip() for line in f if line.strip()]
-    
-class Import:
 
+
+class Import:
     @staticmethod
     def parse_wallet_from_txt() -> List[Dict[str, Optional[str]]]:
-
-        proxies        = read_lines("proxy.txt")
+        proxies = read_lines("proxy.txt")
         twitter_tokens = read_lines("twitter_tokens.txt")
         email_data = read_lines("email_data.txt")
         discord_tokens = read_lines("discord_tokens.txt")
@@ -75,16 +75,17 @@ class Import:
 
         wallets: List[Dict[str, Optional[str]]] = []
         for i in range(record_count):
-            wallets.append({
-                "email_data": email_data[i],
-                "proxy": parse_proxy(pick_proxy(proxies, i)),
-                "twitter_token": twitter_tokens[i] if i < len(twitter_tokens) else None,
-                "discord_token": discord_tokens[i] if i < len(discord_tokens) else None,
-                "discord_proxy": parse_proxy(discord_proxies[i]) if i < len(discord_proxies) else None
-            })
+            wallets.append(
+                {
+                    "email_data": email_data[i],
+                    "proxy": parse_proxy(pick_proxy(proxies, i)),
+                    "twitter_token": twitter_tokens[i] if i < len(twitter_tokens) else None,
+                    "discord_token": discord_tokens[i] if i < len(discord_tokens) else None,
+                    "discord_proxy": parse_proxy(discord_proxies[i]) if i < len(discord_proxies) else None,
+                }
+            )
 
         return wallets
-
 
     @staticmethod
     async def wallets():
@@ -96,10 +97,7 @@ class Import:
         edited: list[Wallet] = []
         total = len(wallets)
 
-
         for wl in wallets:
-
-
             wallet_instance = get_wallet_by_email_data(wl.email_data)
 
             if wallet_instance:
@@ -113,7 +111,6 @@ class Import:
                     wallet_instance.twitter_token = wl.twitter_token
                     changed = True
 
-
                 if hasattr(wallet_instance, "email_data") and wallet_instance.email_data != wl.email_data:
                     wallet_instance.email_data = wl.email_data
                     changed = True
@@ -125,7 +122,6 @@ class Import:
                 if hasattr(wallet_instance, "discord_proxy") and wallet_instance.discord_proxy != parse_proxy(wl.discord_proxy):
                     wallet_instance.discord_proxy = wl.discord_proxy
                     changed = True
-
 
                 if changed:
                     db.commit()
@@ -142,76 +138,68 @@ class Import:
             )
 
             if not wallet_instance.twitter_token:
-                logger.warning(f'{wallet_instance.id} | Twitter Token not found, Twitter Action will be skipped')
+                logger.warning(f"{wallet_instance.id} | Twitter Token not found, Twitter Action will be skipped")
 
             if not wallet_instance.discord_token:
-                logger.warning(f'{wallet_instance.id} | Discord Token not found, Discord Action will be skipped')
+                logger.warning(f"{wallet_instance.id} | Discord Token not found, Discord Action will be skipped")
 
             db.insert(wallet_instance)
             imported.append(wallet_instance)
 
-        logger.success(
-            f'Done! imported wallets: {len(imported)}/{total}; '
-            f'edited wallets: {len(edited)}/{total}; total: {total}'
-        )
+        logger.success(f"Done! imported wallets: {len(imported)}/{total}; edited wallets: {len(edited)}/{total}; total: {total}")
 
-       
-    
+
 class Sync:
-    
     @staticmethod
-    def parse_tokens_and_proxies_from_txt(wallets : List) -> List[Dict[str, Optional[str]]]:
-
-        proxies        = read_lines("proxy.txt")
+    def parse_tokens_and_proxies_from_txt(wallets: List) -> List[Dict[str, Optional[str]]]:
+        proxies = read_lines("proxy.txt")
         twitter_tokens = read_lines("twitter_tokens.txt")
         discord_tokens = read_lines("discord_tokens.txt")
         discord_proxies = read_lines("discord_proxy.txt")
-        
+
         record_count = len(wallets)
 
         wallets: List[Dict[str, Optional[str]]] = []
         for i in range(record_count):
-            wallets.append({
-                "proxy": parse_proxy(pick_proxy(proxies, i)),
-                "twitter_token": twitter_tokens[i] if i < len(twitter_tokens) else None,
-                "discord_token": discord_tokens[i] if i < len(discord_tokens) else None,
-                "discord_proxy": parse_proxy(discord_proxies[i]) if i < len(discord_proxies) else None
-            })
+            wallets.append(
+                {
+                    "proxy": parse_proxy(pick_proxy(proxies, i)),
+                    "twitter_token": twitter_tokens[i] if i < len(twitter_tokens) else None,
+                    "discord_token": discord_tokens[i] if i < len(discord_tokens) else None,
+                    "discord_proxy": parse_proxy(discord_proxies[i]) if i < len(discord_proxies) else None,
+                }
+            )
 
         return wallets
-    
 
     @staticmethod
     async def sync_wallets_with_tokens_and_proxies():
-                 
         wallets = db.all(Wallet)
 
         if len(wallets) <= 0:
             logger.warning("No wallets in DB, nothing to update")
             return
-        
-        wallet_auxiliary_data_raw  = Sync.parse_tokens_and_proxies_from_txt(wallets)
+
+        wallet_auxiliary_data_raw = Sync.parse_tokens_and_proxies_from_txt(wallets)
 
         wallet_auxiliary_data = [SimpleNamespace(**w) for w in wallet_auxiliary_data_raw]
-        
+
         if len(wallet_auxiliary_data) != len(wallets):
             logger.warning("Mismatch between wallet data and tokens/proxies data. Exiting sync.")
             return
-        
-        
+
         total = len(wallets)
 
         logger.info(f"Start syncing wallets: {total}")
-        
+
         edited: list[Wallet] = []
         for wl in wallets:
-
             wallet_instance = get_wallet_by_email_data(wl.email_data)
 
             if wallet_instance:
                 changed = False
 
-                wallet_data  = wallet_auxiliary_data [wallet_instance.id - 1]
+                wallet_data = wallet_auxiliary_data[wallet_instance.id - 1]
                 if wallet_instance.proxy != wallet_data.proxy:
                     wallet_instance.proxy = wallet_data.proxy
                     changed = True
@@ -234,13 +222,12 @@ class Sync:
                     db.commit()
                     edited.append(wallet_instance)
 
+        logger.success(f"Done! edited wallets: {len(edited)}/{total}; total: {total}")
 
-        logger.success(f'Done! edited wallets: {len(edited)}/{total}; total: {total}')
-        
+
 class Export:
-
     _FILES = {
-        "proxy":         "exported_proxy.txt",
+        "proxy": "exported_proxy.txt",
         "twitter_token": "exported_twitter_tokens.txt",
         "email_data": "exported_email_data.txt",
         "discord_token": "exported_discord_tokens.txt",
@@ -249,7 +236,6 @@ class Export:
 
     @staticmethod
     def _write_lines(filename: str, lines: List[Optional[str]]) -> None:
-
         path = os.path.join(FILES_DIR, filename)
         with open(path, "w", encoding="utf-8") as f:
             for line in lines:
@@ -257,7 +243,6 @@ class Export:
 
     @staticmethod
     async def wallets_to_txt() -> None:
-
         wallets: List[Wallet] = db.all(Wallet)
 
         if not wallets:
