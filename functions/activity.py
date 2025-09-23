@@ -89,7 +89,7 @@ async def run_all_tasks(wallet):
 
     controller = Controller(wallet=wallet)
 
-    c = await controller.run_all_tasks()
+    await controller.run_all_tasks()
 
 
 async def register(wallet):
@@ -97,7 +97,7 @@ async def register(wallet):
 
     controller = Controller(wallet=wallet)
 
-    c = await controller.register()
+    await controller.register()
 
 
 async def complete_quests(wallet):
@@ -105,7 +105,7 @@ async def complete_quests(wallet):
 
     controller = Controller(wallet=wallet)
 
-    c = await controller.complete_quests()
+    await controller.complete_quests()
 
 
 async def run_clicker(wallet):
@@ -124,7 +124,7 @@ async def update_points(wallet):
 
     controller = Controller(wallet=wallet)
 
-    c = await controller.update_points()
+    await controller.update_points()
 
 
 async def fill_hs_form(wallet):

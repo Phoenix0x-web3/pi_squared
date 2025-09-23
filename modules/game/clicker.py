@@ -180,7 +180,7 @@ class PiClicker:
         r = await browser.post(url=url, headers=self.base_headers, json=json_data)
         if not r.status_code <= 202:
             raise Exception(f"{r.status_code} | {r.text}")
-        check = r.json()
+        r.json()
 
     async def run_session_with_engine(
         self,
@@ -245,7 +245,6 @@ class PiClicker:
                 detected = target_color
 
             is_ok = detected == target_color
-            color_for_backend = detected
 
             await self.push_click(
                 x=x,
