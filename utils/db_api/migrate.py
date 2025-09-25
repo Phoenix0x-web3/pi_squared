@@ -1,4 +1,3 @@
-
 from utils.db_api.db import DB
 
 db = DB("sqlite:///files/wallets.db")
