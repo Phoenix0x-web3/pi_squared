@@ -1,11 +1,12 @@
 from __future__ import annotations
+
 import random
 from typing import Any, List, Optional
-from .models import Stage, ReactorMetrics
+
+from .models import ReactorMetrics, Stage
 
 
 class ReactorGameEngine:
-
     def __init__(self, stages: List[Stage], *, energy_per_click: int = 1, peak_window_s: float = 1.0):
         if not stages:
             raise ValueError("Stages is empty")
@@ -65,11 +66,10 @@ class ReactorGameEngine:
     def build_end_payload(
         self,
         *,
-        tps_mode: str = "avg",                    # 'avg' | 'peak'
+        tps_mode: str = "avg",  # 'avg' | 'peak'
         override_level: Optional[int] = None,
         override_pi_stage: Optional[str] = None,
     ) -> dict[str, Any]:
-
         dur = self.metrics.duration_s()
         tps_val = self.metrics.peak_tps if tps_mode == "peak" else self.metrics.avg_tps()
 
@@ -106,7 +106,7 @@ class ReactorGameEngine:
     @staticmethod
     def _infer_level_from_pi_stage(pi_stage: str) -> int:
         try:
-            head = pi_stage.split('.', 1)[0].strip()
+            head = pi_stage.split(".", 1)[0].strip()
             return int(head)
         except Exception:
             return 9

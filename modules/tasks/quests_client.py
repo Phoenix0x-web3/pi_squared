@@ -1,60 +1,61 @@
-import re
 import asyncio
 import random
+import re
+
 from loguru import logger
 
 from data.settings import Settings
+from utils.db_api.wallet_api import update_discord_connect, update_points_and_top
 from utils.discord.discord import DiscordOAuth
-from utils.db_api.wallet_api import update_points_and_top, update_discord_connect
 from utils.twitter.twitter_client import TwitterClient
+
 from .http_client import BaseHttpClient
 
 
 class QuestsClient(BaseHttpClient):
-    __module__ = 'PiPortal Quests'
+    __module__ = "PiPortal Quests"
     BASE_LINK = "https://pisquared-api.pulsar.money/api/v1/"
 
-
-    async def complete_quests(self, random_stop:bool = False):
+    async def complete_quests(self, random_stop: bool = False):
         uncompleted_tasks = await self.get_uncompleted_tasks()
         random.shuffle(uncompleted_tasks)
         total_play, best_score = await self.get_game_stats()
         random_quest_complete = random.randint(1, len(uncompleted_tasks))
         logger.debug(uncompleted_tasks)
-  
+
         for i, task in enumerate(uncompleted_tasks):
-            task_id = task['id']
-            task_title = task['title']
+            task_id = task["id"]
+            task_title = task["title"]
             if not self.user.discord_connected and 60 >= random.randint(1, 100):
                 await self.connect_discord()
-            
-            if task.get('taskName') == 'quiz':
-                arguments = task.get('arguments', [])
+
+            if task.get("taskName") == "quiz":
+                arguments = task.get("arguments", [])
                 correct_answer = None
-                
+
                 for arg in arguments:
-                    if arg.get('name') == 'correctAnswer':
-                        correct_answer = arg.get('value')
+                    if arg.get("name") == "correctAnswer":
+                        correct_answer = arg.get("value")
                         break
-                
+
                 if correct_answer:
                     task_result = await self.do_task_request(task_guid=task_id, extra_arguments=[correct_answer])
                     if task_result:
-                        logger.success(f"{self.user} | {self.__module__ } | Completed quiz task {task_title} with answer: {correct_answer}")
+                        logger.success(f"{self.user} | {self.__module__} | Completed quiz task {task_title} with answer: {correct_answer}")
                     else:
-                        logger.error(f"{self.user} | {self.__module__ } | can't complete {task_title} with answer: {correct_answer}")
+                        logger.error(f"{self.user} | {self.__module__} | can't complete {task_title} with answer: {correct_answer}")
                 else:
                     logger.debug(f"No correct answer found for quiz task {task_id}")
                     continue
 
-            elif task.get('taskName') == 'click_link':
+            elif task.get("taskName") == "click_link":
                 task_result = await self.do_task_request(task_guid=task_id)
                 if task_result:
-                    logger.success(f"{self.user} | {self.__module__ } | Completed click_link task {task_title}")
+                    logger.success(f"{self.user} | {self.__module__} | Completed click_link task {task_title}")
                 else:
-                    logger.error(f"{self.user} | {self.__module__ } | can't complete click_link task {task_title}")
+                    logger.error(f"{self.user} | {self.__module__} | can't complete click_link task {task_title}")
 
-            elif task.get('taskName') == 'twitter_username' and self.user.twitter_token and self.user.twitter_status == "OK":
+            elif task.get("taskName") == "twitter_username" and self.user.twitter_token and self.user.twitter_status == "OK":
                 twitter_client = TwitterClient(user=self.user)
                 await twitter_client.initialize()
                 connect = await self.connect_twitter_to_portal(twitter_client=twitter_client)
@@ -65,78 +66,76 @@ class QuestsClient(BaseHttpClient):
                 if change_name:
                     task_result = await self.do_task_request(task_guid=task_id)
                     if task_result:
-                        logger.success(f"{self.user} | {self.__module__ } | Completed twitter username task {task_title}")
+                        logger.success(f"{self.user} | {self.__module__} | Completed twitter username task {task_title}")
                         await asyncio.sleep(5)
                         await self.change_twitter_name(twitter_client=twitter_client)
                     else:
-                        logger.error(f"{self.user} | {self.__module__ } | can't complete twitter username task {task_title}")
+                        logger.error(f"{self.user} | {self.__module__} | can't complete twitter username task {task_title}")
                 else:
                     logger.warning(f"{self.user} can't change twitter name. Skip task")
                     continue
 
-            elif task.get('taskName') == 'pisquared_query':
-                arguments = task.get('arguments', [])
+            elif task.get("taskName") == "pisquared_query":
+                arguments = task.get("arguments", [])
                 query_type = None
                 min_value = None
 
                 for arg in arguments:
-                    if arg.get('name') == 'query':
-                        query_type = arg.get('value')
-                    if arg.get('name') == 'minValue':
-                        min_value = int(arg.get('value'))
-
+                    if arg.get("name") == "query":
+                        query_type = arg.get("value")
+                    if arg.get("name") == "minValue":
+                        min_value = int(arg.get("value"))
 
                 should_attempt_task = False
-                if query_type == 'pisquared-games' and total_play >= min_value:
+                if query_type == "pisquared-games" and total_play >= min_value:
                     should_attempt_task = True
-                elif query_type == 'pisquared-clicks' and best_score >= min_value:
+                elif query_type == "pisquared-clicks" and best_score >= min_value:
                     should_attempt_task = True
 
                 if should_attempt_task:
                     task_result = await self.do_task_request(task_guid=task_id, extra_arguments=[])
                     if task_result:
-                        logger.success(f"{self.user} | {self.__module__ } | Completed game challenge task {task_title}")
+                        logger.success(f"{self.user} | {self.__module__} | Completed game challenge task {task_title}")
                     else:
-                        logger.error(f"{self.user} | {self.__module__ } | can't complete game challenge task {task_title}")
+                        logger.error(f"{self.user} | {self.__module__} | can't complete game challenge task {task_title}")
                 else:
-                    logger.debug(f"{self.user} | {self.__module__ } | does not meet conditions for game challenge task {task_title} (total_play: {total_play}, best_score: {best_score}, required: {min_value} for {query_type})")
+                    logger.debug(
+                        f"{self.user} | {self.__module__} | does not meet conditions for game challenge task {task_title} (total_play: {total_play}, best_score: {best_score}, required: {min_value} for {query_type})"
+                    )
                     continue
             else:
                 continue
 
             if random_stop:
                 if i > random_quest_complete:
-                    logger.info(f"{self.user} | {self.__module__ } | complete {i} quests and random stop. Complete the rest after the games")
+                    logger.info(f"{self.user} | {self.__module__} | complete {i} quests and random stop. Complete the rest after the games")
                     return True
             random_sleep = random.randint(Settings().random_pause_between_actions_min, Settings().random_pause_between_actions_max)
-            logger.debug(f"{self.user} | {self.__module__ } | {random_sleep} sleep seconds before next quest")
+            logger.debug(f"{self.user} | {self.__module__} | {random_sleep} sleep seconds before next quest")
             await asyncio.sleep(random_sleep)
 
-        logger.success(f"{self.user} | {self.__module__ } | completed or already completed all available quests")
+        logger.success(f"{self.user} | {self.__module__} | completed or already completed all available quests")
         await self.get_and_update_points()
-        return True   
+        return True
 
     async def get_and_update_points(self):
         success, data = await self.request(url="https://pisquared-api.pulsar.money/api/v1/pulsar/challenges/pi-squared/me/1", method="GET")
         logger.debug(data)
         if success and isinstance(data, dict):
-            points = int(float(data['totalPoints']))
-            rank = data['rank']
+            points = int(float(data["totalPoints"]))
+            rank = data["rank"]
             logger.success(f"{self.user} user have {points} points and {rank} Rank")
             return update_points_and_top(id=self.user.id, points=int(points), top=int(rank))
         return False
 
-
     async def do_task_request(self, task_guid: str, extra_arguments: list = []):
-        json_data = {
-            'taskGuid': task_guid,
-            'extraArguments': extra_arguments
-        }
-        success, data = await self.request(url=f"{self.BASE_LINK}pulsar/challenges/do-task", method="POST", json_data=json_data, use_refresh_token=False)
-        if success and isinstance(data, dict) and data['status']:
+        json_data = {"taskGuid": task_guid, "extraArguments": extra_arguments}
+        success, data = await self.request(
+            url=f"{self.BASE_LINK}pulsar/challenges/do-task", method="POST", json_data=json_data, use_refresh_token=False
+        )
+        if success and isinstance(data, dict) and data["status"]:
             return True
         return False
-
 
     async def get_uncompleted_tasks(self):
         uncompleted_tasks = []
@@ -145,14 +144,16 @@ class QuestsClient(BaseHttpClient):
         count = 0
         for i in available_tasks:
             for a in tasks_status:
-                if i['id'] == a["taskGuid"]:
+                if i["id"] == a["taskGuid"]:
                     count += 1
-                    if a['status'] != "SUCCESSFUL":
+                    if a["status"] != "SUCCESSFUL":
                         uncompleted_tasks.append(i)
         return uncompleted_tasks
 
     async def get_tasks_status(self):
-        success, data = await self.request(url=f"{self.BASE_LINK}pulsar/challenges/pi-squared/tasks-status/1", method="GET", use_refresh_token=False)
+        success, data = await self.request(
+            url=f"{self.BASE_LINK}pulsar/challenges/pi-squared/tasks-status/1", method="GET", use_refresh_token=False
+        )
         tasks_status = []
         if success and isinstance(data, dict):
             for task in data["tasksStatus"]:
@@ -160,21 +161,23 @@ class QuestsClient(BaseHttpClient):
         return tasks_status
 
     async def get_available_tasks(self):
-        success, data = await self.request(url=f"{self.BASE_LINK}pulsar/challenges/pi-squared/1", method="GET",use_refresh_token=False)
+        success, data = await self.request(url=f"{self.BASE_LINK}pulsar/challenges/pi-squared/1", method="GET", use_refresh_token=False)
         available_tasks = []
         if success and isinstance(data, dict):
             for task in data["tasks"]:
                 if task["isEnabled"]:
                     available_tasks.append(task)
         return available_tasks
-    
-    async def get_game_stats(self,):
+
+    async def get_game_stats(
+        self,
+    ):
         session = await self.get_session()
         if not session:
             raise Exception(f"{self.__module__} | Can't get session")
         user_id = session["user"]["id"]
-        success, data = await self.request(url=f"{self.BASE_LINK}game-statistics/user/{user_id}",method="GET", use_refresh_token=False)
-        
+        success, data = await self.request(url=f"{self.BASE_LINK}game-statistics/user/{user_id}", method="GET", use_refresh_token=False)
+
         if not success:
             return 0, 0
 
@@ -187,12 +190,11 @@ class QuestsClient(BaseHttpClient):
             best = int(data.get("bestScore") or 0)
             return total, best
 
- 
         return 0, 0
 
     async def get_session(self):
         success, data = await self.request(url=f"{self.BASE_LINK}auth/session", method="GET")
-        if success and isinstance(data,dict):
+        if success and isinstance(data, dict):
             return data
         return False
 
@@ -200,12 +202,12 @@ class QuestsClient(BaseHttpClient):
         name_now = twitter_client.twitter_account.name
         if "π²" in name_now:
             name_now = twitter_client.twitter_account.name
-            result = re.sub(r'π²', '', name_now).strip()
+            result = re.sub(r"π²", "", name_now).strip()
             return await twitter_client.change_name(name=result)
         return await twitter_client.change_name(name=twitter_client.twitter_account.name + "π²")
 
     async def connect_twitter_to_portal(self, twitter_client):
-        check_connect = await self.check_media_connect(media='twitter')
+        check_connect = await self.check_media_connect(media="twitter")
         if check_connect:
             logger.info(f"{self.user} already have connected twitter")
             return True
@@ -216,7 +218,7 @@ class QuestsClient(BaseHttpClient):
         if not link:
             return False
         await twitter_client.connect_twitter_to_site_oauth2(twitter_auth_url=str(link))
-        check_connect = await self.check_media_connect(media='twitter')
+        check_connect = await self.check_media_connect(media="twitter")
         if check_connect:
             logger.success(f"{self.user} success connect twitter to site")
             await asyncio.sleep(5)
@@ -228,24 +230,29 @@ class QuestsClient(BaseHttpClient):
     async def check_media_connect(self, media: str):
         _, data = await self.request(url="https://pisquared-api.pulsar.money/api/v1/pulsar/social-pay/me", method="GET")
         if media == "twitter":
-            return data['twitterMetadata']
+            return data["twitterMetadata"]
         else:
-            return data['discordMetadata']
+            return data["discordMetadata"]
 
     async def request_twitter_link(self):
         json_data = {
-            'type': 'register',
-            'redirectUrl': 'https://portal.pi2.network/quests',
+            "type": "register",
+            "redirectUrl": "https://portal.pi2.network/quests",
         }
-        _, data = await self.request(url="https://pisquared-api.pulsar.money/api/v1/pulsar/social-pay/register/twitter", method="POST", json_data=json_data)
+        _, data = await self.request(
+            url="https://pisquared-api.pulsar.money/api/v1/pulsar/social-pay/register/twitter", method="POST", json_data=json_data
+        )
         return data
 
     async def request_discord_link(self):
-        _, data = await self.request(url="https://pisquared-api.pulsar.money/api/v1/pulsar/social-pay/register/discord?redirectUri=https://portal.pi2.network/quests", method="GET")
+        _, data = await self.request(
+            url="https://pisquared-api.pulsar.money/api/v1/pulsar/social-pay/register/discord?redirectUri=https://portal.pi2.network/quests",
+            method="GET",
+        )
         return data
 
     async def connect_discord(self):
-        check_connect = await self.check_media_connect(media='discord')
+        check_connect = await self.check_media_connect(media="discord")
         if check_connect:
             logger.debug(f"{self.user} already have connected discord")
             update_discord_connect(id=self.user.id)
@@ -260,7 +267,7 @@ class QuestsClient(BaseHttpClient):
         discord = DiscordOAuth(wallet=self.user)
         oauth_url, state = await discord.start_oauth2(oauth_url=str(link))
         _ = await self.browser.get(url=oauth_url)
-        check_connect = await self.check_media_connect(media='discord')
+        check_connect = await self.check_media_connect(media="discord")
         if check_connect:
             logger.success(f"{self.user} success connect discord to site")
             update_discord_connect(id=self.user.id)

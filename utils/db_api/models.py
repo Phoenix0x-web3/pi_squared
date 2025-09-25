@@ -1,12 +1,14 @@
-from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
 from data.constants import PROJECT_SHORT_NAME
+
 
 class Base(DeclarativeBase):
     pass
 
+
 class Wallet(Base):
-    __tablename__ = 'wallets'
+    __tablename__ = "wallets"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email_data: Mapped[str] = mapped_column(unique=True, default=None, nullable=True)
@@ -25,9 +27,6 @@ class Wallet(Base):
     bearer_token: Mapped[str] = mapped_column(default=None, nullable=True)
     refresh_token: Mapped[str] = mapped_column(default=None, nullable=True)
     hs_form_status: Mapped[str] = mapped_column(default=None, nullable=True)
-    
-
 
     def __repr__(self):
-        return f'[{PROJECT_SHORT_NAME} | {self.id}]'
-        
+        return f"[{PROJECT_SHORT_NAME} | {self.id}]"

@@ -1,15 +1,15 @@
 import sys
 
-from libs.eth_async.classes import Singleton
-from data.config import SETTINGS_FILE
-from data.config import LOG_FILE, SETTINGS_FILE
-from loguru import logger
 import yaml
+from loguru import logger
+
+from data.config import LOG_FILE, SETTINGS_FILE
+from libs.eth_async.classes import Singleton
 
 
 class Settings(Singleton):
     def __init__(self):
-        with open(SETTINGS_FILE, 'r') as file:
+        with open(SETTINGS_FILE, "r") as file:
             json_data = yaml.safe_load(file) or {}
 
         self.check_git_updates = json_data.get("check_git_updates", True)
@@ -22,13 +22,13 @@ class Settings(Singleton):
         self.log_level = json_data.get("log_level", "INFO")
         self.random_pause_start_wallet_min = json_data.get("random_pause_start_wallet", {}).get("min")
         self.random_pause_start_wallet_max = json_data.get("random_pause_start_wallet", {}).get("max")
-        self.random_pause_between_wallets_min = json_data.get("random_pause_between_wallets",{}).get("min")
+        self.random_pause_between_wallets_min = json_data.get("random_pause_between_wallets", {}).get("min")
         self.random_pause_between_wallets_max = json_data.get("random_pause_between_wallets", {}).get("max")
         self.random_pause_between_actions_min = json_data.get("random_pause_between_actions", {}).get("min")
         self.random_pause_between_actions_max = json_data.get("random_pause_between_actions", {}).get("max")
-        self.random_pause_wallet_after_completion_min = json_data.get("random_pause_wallet_after_completion", {}).get('min')
-        self.random_pause_wallet_after_completion_max = json_data.get("random_pause_wallet_after_completion", {}).get('max')
-        
+        self.random_pause_wallet_after_completion_min = json_data.get("random_pause_wallet_after_completion", {}).get("min")
+        self.random_pause_wallet_after_completion_max = json_data.get("random_pause_wallet_after_completion", {}).get("max")
+
         self.retry = json_data.get("retry", 3)
         self.resources_max_failures = json_data.get("resources_max_failures", 3)
         self.auto_replace_proxy = json_data.get("auto_replace_proxy ", True)
