@@ -91,13 +91,20 @@ class QuestsClient(BaseHttpClient):
                     should_attempt_task = True
                 elif query_type == "pisquared-clicks" and best_score >= min_value:
                     should_attempt_task = True
+                elif query_type == "pisquared-peak-tps":
+                    should_attempt_task = True
+
+                elif query_type == "pisquared-active-players":
+                    should_attempt_task = True
 
                 if should_attempt_task:
                     task_result = await self.do_task_request(task_guid=task_id, extra_arguments=[])
                     if task_result:
                         logger.success(f"{self.user} | {self.__module__} | Completed game challenge task {task_title}")
                     else:
-                        logger.error(f"{self.user} | {self.__module__} | can't complete game challenge task {task_title}")
+                        logger.warning(
+                            f"{self.user} | {self.__module__} | can't complete game challenge task {task_title}.Not ready, will try later"
+                        )
                 else:
                     logger.debug(
                         f"{self.user} | {self.__module__} | does not meet conditions for game challenge task {task_title} (total_play: {total_play}, best_score: {best_score}, required: {min_value} for {query_type})"
