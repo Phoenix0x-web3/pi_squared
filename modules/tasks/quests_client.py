@@ -71,7 +71,7 @@ class QuestsClient(BaseHttpClient):
                     if task_result:
                         logger.success(f"{self.user} | {self.__module__} | Completed twitter username task {task_title}")
                         await asyncio.sleep(5)
-                        await self.change_twitter_name(twitter_client=twitter_client)
+                        await self.change_twitter_name(twitter_client=twitter_client, change_back=True)
                     else:
                         logger.error(f"{self.user} | {self.__module__} | can't complete twitter username task {task_title}")
                 else:
@@ -208,12 +208,16 @@ class QuestsClient(BaseHttpClient):
             return data
         return False
 
-    async def change_twitter_name(self, twitter_client):
+    async def change_twitter_name(self, twitter_client, change_back: bool = False):
         name_now = twitter_client.twitter_account.name
-        if "π²" in name_now:
+        if change_back:
             name_now = twitter_client.twitter_account.name
             result = re.sub(r"π²", "", name_now).strip()
             return await twitter_client.change_name(name=result)
+        if "π²" in name_now:
+            logger.debug(f"{self.user} | {self.__module__} | twitter name already changed")
+            return True
+
         return await twitter_client.change_name(name=twitter_client.twitter_account.name + "π²")
 
     async def connect_twitter_to_portal(self, twitter_client):
