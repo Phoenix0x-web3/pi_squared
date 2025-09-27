@@ -211,9 +211,12 @@ class QuestsClient(BaseHttpClient):
     async def change_twitter_name(self, twitter_client, change_back: bool = False):
         name_now = twitter_client.twitter_account.name
         if change_back:
-            name_now = twitter_client.twitter_account.name
+            if "π²" not in name_now:
+                logger.debug(f"{self.user} | {self.__module__} | twitter name already clean")
+                return True
             result = re.sub(r"π²", "", name_now).strip()
             return await twitter_client.change_name(name=result)
+
         if "π²" in name_now:
             logger.debug(f"{self.user} | {self.__module__} | twitter name already changed")
             return True
