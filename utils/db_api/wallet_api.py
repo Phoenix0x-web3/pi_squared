@@ -107,6 +107,15 @@ def mark_proxy_as_bad(id: int) -> bool:
     return True
 
 
+def mark_discord_as_bad(id: int) -> bool:
+    wallet = db.one(Wallet, Wallet.id == id)
+    if not wallet:
+        return False
+    wallet.discord_status = "BAD"
+    db.commit()
+    return True
+
+
 def mark_twitter_as_bad(id: int) -> bool:
     wallet = db.one(Wallet, Wallet.id == id)
     if not wallet:
