@@ -6,8 +6,9 @@ from loguru import logger
 
 from data.settings import Settings
 from utils.db_api.wallet_api import update_discord_connect, update_points_and_top
-from utils.discord.discord import DiscordOAuth
-from utils.twitter.twitter_client import TwitterClient
+from utils.db_api.wallet_api import db
+from utils.discord.discord import DiscordOAuth, DiscordStatus
+from utils.twitter.twitter_client import TwitterClient, TwitterStatuses
 
 from .http_client import BaseHttpClient
 
@@ -55,9 +56,12 @@ class QuestsClient(BaseHttpClient):
                 else:
                     logger.error(f"{self.user} | {self.__module__} | can't complete click_link task {task_title}")
 
-            elif task.get("taskName") == "twitter_username" and self.user.twitter_token and self.user.twitter_status == "OK":
+            elif task.get("taskName") == "twitter_username" and self.user.twitter_token and self.user.twitter_status == TwitterStatuses.ok:
                 twitter_client = TwitterClient(user=self.user)
-                await twitter_client.initialize()
+                init = await twitter_client.initialize()
+                if not init:
+                    logger.warning(f"{self.user} can't initialize twitter")
+                    continue
                 connect = await self.connect_twitter_to_portal(twitter_client=twitter_client)
                 if not connect:
                     logger.warning(f"{self.user} can't connect twitter")
@@ -272,7 +276,12 @@ class QuestsClient(BaseHttpClient):
             return False
 
         discord = DiscordOAuth(wallet=self.user)
-        oauth_url, state = await discord.start_oauth2(oauth_url=str(link))
+        try:
+            oauth_url, state = await discord.start_oauth2(oauth_url=str(link)), BUS2
+        except Exception:
+            self.user.discord_status = DiscordStatus.bad_token
+            db.commit()
+            return False
         _ = await self.browser.get(url=oauth_url)
         check_connect = await self.check_media_connect(media="discord")
         if check_connect:
