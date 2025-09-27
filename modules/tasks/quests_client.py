@@ -5,8 +5,8 @@ import re
 from loguru import logger
 
 from data.settings import Settings
-from utils.db_api.wallet_api import db, update_discord_connect, update_points_and_top
-from utils.discord.discord import DiscordOAuth, DiscordStatus
+from utils.db_api.wallet_api import update_discord_connect, update_points_and_top, mark_discord_as_bad
+from utils.discord.discord import DiscordOAuth
 from utils.twitter.twitter_client import TwitterClient, TwitterStatuses
 
 from .http_client import BaseHttpClient
@@ -278,8 +278,7 @@ class QuestsClient(BaseHttpClient):
         try:
             oauth_url, _ = await discord.start_oauth2(oauth_url=str(link)) 
         except Exception:
-            self.user.discord_status = DiscordStatus.bad_token
-            db.commit()
+            mark_discord_as_bad(id=self.user.id)
             return False
         _ = await self.browser.get(url=oauth_url)
         check_connect = await self.check_media_connect(media="discord")
