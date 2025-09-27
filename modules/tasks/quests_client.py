@@ -5,7 +5,7 @@ import re
 from loguru import logger
 
 from data.settings import Settings
-from utils.db_api.wallet_api import update_discord_connect, update_points_and_top, mark_discord_as_bad
+from utils.db_api.wallet_api import mark_discord_as_bad, update_discord_connect, update_points_and_top
 from utils.discord.discord import DiscordOAuth
 from utils.twitter.twitter_client import TwitterClient, TwitterStatuses
 
