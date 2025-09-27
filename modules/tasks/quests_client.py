@@ -276,7 +276,7 @@ class QuestsClient(BaseHttpClient):
 
         discord = DiscordOAuth(wallet=self.user)
         try:
-            oauth_url, _ = await discord.start_oauth2(oauth_url=str(link)) 
+            oauth_url, _ = await discord.start_oauth2(oauth_url=str(link))
         except Exception:
             mark_discord_as_bad(id=self.user.id)
             return False
