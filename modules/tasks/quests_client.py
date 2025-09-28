@@ -55,7 +55,7 @@ class QuestsClient(BaseHttpClient):
                 else:
                     logger.error(f"{self.user} | {self.__module__} | can't complete click_link task {task_title}")
 
-            elif task.get("taskName") == "twitter_username" and self.user.twitter_token and self.user.twitter_status == TwitterStatuses.ok:
+            elif task.get("taskName") == "twitter_username" and self.user.twitter_token:
                 twitter_client = TwitterClient(user=self.user)
                 init = await twitter_client.initialize()
                 if not init:
