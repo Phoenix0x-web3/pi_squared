@@ -124,11 +124,6 @@ class Controller:
         if not session:
             return False
         
-        twitter_client = TwitterClient(user=self.wallet)
-        init = await twitter_client.initialize()
-        if not init:
-            logger.warning(f"{self.wallet} can't initialize twitter")
-            return False
         delete_replace = await self.quests_client.delete_twitter_replace_token()
         if delete_replace:
             twitter_client = TwitterClient(user=self.wallet)
