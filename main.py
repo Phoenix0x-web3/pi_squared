@@ -26,6 +26,7 @@ PROJECT_ACTIONS = [
     "4. Clicker Game",
     "5. Update Points and Rank",
     "6. Send HS Form",
+    "7. Reconnect and Replace Bad Twitters",
     "Back",
 ]
 
@@ -95,6 +96,9 @@ async def choose_action():
 
     elif "6. Send HS Form" == action:
         await activity(action=6)
+
+    elif "7. Reconnect and Replace Bad Twitters" == action:
+        await activity(action=7)
 
     elif action == "1. Reset files Folder":
         console.print("This action will delete the files folder and reset it.")

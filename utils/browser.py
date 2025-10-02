@@ -41,3 +41,10 @@ class Browser:
             return await self.async_session.put(**kwargs)
         finally:
             await self._close_session()
+
+    async def delete(self, **kwargs):
+        await self._ensure_session()
+        try:
+            return await self.async_session.delete(**kwargs)
+        finally:
+            await self._close_session()
