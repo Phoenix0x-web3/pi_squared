@@ -7,6 +7,7 @@ from loguru import logger
 from data.settings import Settings
 from utils.db_api.wallet_api import mark_discord_as_bad, update_discord_connect, update_points_and_top
 from utils.discord.discord import DiscordOAuth
+from utils.resource_manager import ResourceManager
 from utils.twitter.twitter_client import TwitterClient, TwitterStatuses
 
 from .http_client import BaseHttpClient
@@ -56,6 +57,11 @@ class QuestsClient(BaseHttpClient):
                     logger.error(f"{self.user} | {self.__module__} | can't complete click_link task {task_title}")
 
             elif task.get("taskName") == "twitter_username" and self.user.twitter_token:
+                if self.user.twitter_status != TwitterStatuses.ok:
+                    delete_and_replace = await self.delete_twitter_replace_token()
+                    if not delete_and_replace:
+                        logger.warning(f"{self.user} can't delete old twitter from profile or replace token in DataBase")
+                        continue
                 twitter_client = TwitterClient(user=self.user)
                 init = await twitter_client.initialize()
                 if not init:
@@ -223,8 +229,18 @@ class QuestsClient(BaseHttpClient):
 
         return await twitter_client.change_name(name=twitter_client.twitter_account.name + "π²")
 
-    async def connect_twitter_to_portal(self, twitter_client):
+    async def connect_twitter_to_portal(self, twitter_client: TwitterClient):
         check_connect = await self.check_media_connect(media="twitter")
+        if check_connect and int(twitter_client.twitter_account.id) != int(check_connect["userId"]):
+            logger.warning(
+                f"{self.user} twitter client id: {twitter_client.twitter_account.id}. ID is connected to the site: {check_connect['userId']}. Will be reconnect"
+            )
+            delete_media = await self.delete_media_connect(media="twitter")
+            if delete_media:
+                return await self.connect_twitter_to_portal(twitter_client=twitter_client)
+            else:
+                logger.error(f"{self.user} can't delete twitter from account")
+                return False
         if check_connect:
             logger.info(f"{self.user} already have connected twitter")
             return True
@@ -244,7 +260,25 @@ class QuestsClient(BaseHttpClient):
             logger.warning(f"{self.user} can't connect twitter to site")
             return False
 
-    async def check_media_connect(self, media: str):
+    async def delete_twitter_replace_token(self):
+        if self.user.twitter_status == TwitterStatuses.ok:
+            return True
+        replace_token = await ResourceManager().replace_twitter(id=self.user.id)
+        if not replace_token:
+            return False
+        check_connect = await self.check_media_connect(media="twitter")
+        if check_connect:
+            return await self.delete_media_connect(media="twitter")
+        return True
+
+    async def delete_media_connect(self, media: str):
+        _, data = await self.request(url="https://pisquared-api.pulsar.money/api/v1/pulsar/social-pay/unregister", method="DELETE")
+        check_connect = await self.check_media_connect(media=media)
+        if not check_connect:
+            return True
+        return False
+
+    async def check_media_connect(self, media: str) -> dict:
         _, data = await self.request(url="https://pisquared-api.pulsar.money/api/v1/pulsar/social-pay/me", method="GET")
         if media == "twitter":
             return data["twitterMetadata"]
@@ -256,16 +290,23 @@ class QuestsClient(BaseHttpClient):
             "type": "register",
             "redirectUrl": "https://portal.pi2.network/quests",
         }
-        _, data = await self.request(
+        response, data = await self.request(
             url="https://pisquared-api.pulsar.money/api/v1/pulsar/social-pay/register/twitter", method="POST", json_data=json_data
         )
+        if not response:
+            logger.warning(f"{self.user} can't request twitter link. Data: {data}")
+            return False
+
         return data
 
     async def request_discord_link(self):
-        _, data = await self.request(
+        response, data = await self.request(
             url="https://pisquared-api.pulsar.money/api/v1/pulsar/social-pay/register/discord?redirectUri=https://portal.pi2.network/quests",
             method="GET",
         )
+        if not response:
+            logger.warning(f"{self.user} can't request discord link. Data: {data}")
+            return False
         return data
 
     async def connect_discord(self):

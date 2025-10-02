@@ -9,6 +9,7 @@ from data.settings import Settings
 from functions.controller import Controller
 from utils.db_api.models import Wallet
 from utils.db_api.wallet_api import db
+from utils.twitter.twitter_client import TwitterStatuses
 
 
 async def random_sleep_before_start(wallet):
@@ -83,6 +84,9 @@ async def activity(action: int):
     if action == 6:
         await execute(wallets, fill_hs_form)
 
+    if action == 7:
+        await execute(wallets, reconnect_twitter)
+
 
 async def run_all_tasks(wallet):
     await random_sleep_before_start(wallet=wallet)
@@ -141,3 +145,13 @@ async def fill_hs_form(wallet):
 
     except Exception as e:
         logger.exception(e)
+
+async def reconnect_twitter(wallet):
+    if wallet.twitter_status == TwitterStatuses.ok:
+        return
+
+    await random_sleep_before_start(wallet=wallet)
+
+    controller = Controller(wallet=wallet)
+
+    await controller.reconnect_twitter()

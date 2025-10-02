@@ -4,9 +4,10 @@ import re
 import requests
 from eth_account.signers.local import LocalAccount
 from fake_useragent import UserAgent
-from utils.encryption import get_private_key
 from web3 import Web3
 from web3.eth import AsyncEth
+
+from utils.encryption import get_private_key
 
 from . import exceptions
 from .contracts import Contracts

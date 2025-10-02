@@ -11,6 +11,7 @@ from modules.tasks.quests_client import QuestsClient
 from modules.tasks.authorization import AuthClient
 from utils.db_api.models import Wallet
 from utils.logs_decorator import controller_log
+from utils.twitter.twitter_client import TwitterClient
 from modules.hs_form import HSForm
 
 BOX_SIZE_MAP = [
@@ -116,3 +117,27 @@ class Controller:
         instance = HSForm(wallet=self.wallet)
         
         return await instance.fill_form()
+    
+    async def reconnect_twitter(self):
+        session = await self.register()
+
+        if not session:
+            return False
+        
+        twitter_client = TwitterClient(user=self.wallet)
+        init = await twitter_client.initialize()
+        if not init:
+            logger.warning(f"{self.wallet} can't initialize twitter")
+            return False
+        delete_replace = await self.quests_client.delete_twitter_replace_token()
+        if delete_replace:
+            twitter_client = TwitterClient(user=self.wallet)
+            init = await twitter_client.initialize()
+            if not init:
+                logger.warning(f"{self.wallet} can't initialize twitter")
+                return False
+            connect = await self.quests_client.connect_twitter_to_portal(twitter_client=twitter_client)
+            if not connect:
+                logger.warning(f"{self.wallet} can't connect twitter")
+                return False
+        return True
