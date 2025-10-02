@@ -146,6 +146,7 @@ async def fill_hs_form(wallet):
     except Exception as e:
         logger.exception(e)
 
+
 async def reconnect_twitter(wallet):
     if wallet.twitter_status == TwitterStatuses.ok:
         return
