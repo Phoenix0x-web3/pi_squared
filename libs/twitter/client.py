@@ -476,6 +476,7 @@ class Client(BaseHTTPClient):
         user = await self._request_user_by_username(username)
 
         if user and user.username == self.account.username:
+            self.account.name = user.name
             self.account.update(**user.model_dump())
             return self.account
 
