@@ -1074,6 +1074,15 @@ class Client(BaseHTTPClient):
         """
         return await self._update_profile_image("banner", media_id)
 
+    async def change_name(self, name: str) -> bool:
+        url = "https://api.x.com/1.1/account/update_profile.json"
+        payload = {"name": name}
+        response, data = await self.request("POST", url, data=payload)
+        new_name = data["name"]
+        changed = new_name == name
+        self.account.name = name
+        return changed
+
     async def change_username(self, username: str) -> bool:
         url = "https://x.com/i/api/1.1/account/settings.json"
         payload = {"screen_name": username}

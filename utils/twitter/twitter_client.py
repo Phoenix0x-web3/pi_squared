@@ -337,6 +337,53 @@ class TwitterClient:
             logger.warning(f"{self.user} Failed to like")
             return False
 
+    async def change_name(self, name: str) -> bool:
+        """
+        Change name
+        Args:
+            name: New name for account
+        Returns:
+            Success status
+        """
+
+        if not self.twitter_client:
+            initialize = await self.initialize()
+            if not initialize:
+                raise Exception("Can't initialize twitter client")
+
+        logger.debug(self.twitter_account.name)
+        result = await self.twitter_client.change_name(name)
+
+        if result:
+            logger.success(f"{self.user} username change to {name} successful")
+            return True
+        else:
+            logger.warning(f"{self.user} Failed change to {name} username")
+            return False
+
+    async def change_username(self, username: str) -> bool:
+        """
+        Change username
+        Args:
+            username: New username for account
+        Returns:
+            Success status
+        """
+
+        if not self.twitter_client:
+            initialize = await self.initialize()
+            if not initialize:
+                raise Exception("Can't initialize twitter client")
+
+        username = await self.twitter_client.change_username(username)
+
+        if username:
+            logger.success(f"{self.user} username change to {username} successful")
+            return True
+        else:
+            logger.warning(f"{self.user} Failed change to {username} username")
+            return False
+
     async def connect_twitter_to_site_oauth(self, twitter_auth_url: str) -> TwitterOauthData:
         """
         Connects Twitter to Site using oauth
