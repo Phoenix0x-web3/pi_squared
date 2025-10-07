@@ -17,6 +17,8 @@ from .errors import (
     AccountLocked,
     AccountNotFound,
     AccountSuspended,
+    AlreadyRetweeted,
+    AlreadyTweeted,
     BadAccount,
     BadAccountToken,
     BadRequest,
@@ -30,7 +32,13 @@ from .errors import (
     Unauthorized,
 )
 from .models import Media, Subtask, Tweet, User
-from .utils import XPFFHeaderGenerator, encode_x_client_transaction_id, parse_oauth_html, parse_unlock_html, tweets_data_from_instructions
+from .utils import (
+    XPFFHeaderGenerator,
+    encode_x_client_transaction_id,
+    parse_oauth_html,
+    parse_unlock_html,
+    tweets_data_from_instructions,
+)
 
 
 class Client(BaseHTTPClient):
@@ -468,7 +476,6 @@ class Client(BaseHTTPClient):
         user = await self._request_user_by_username(username)
 
         if user and user.username == self.account.username:
-            self.account.name = user.name
             self.account.update(**user.model_dump())
             return self.account
 
@@ -594,29 +601,22 @@ class Client(BaseHTTPClient):
         tweet_id = data["data"]["create_retweet"]["retweet_results"]["result"]["rest_id"]  # type: ignore
         return await self.request_tweet(tweet_id)
 
-    async def _repost_or_search_duplicate(
+    async def _search_duplicate_repost(self, tweet_id: int):
+        tweets = await self.request_tweets(self.account.id)
+        for tweet_ in tweets:
+            if tweet_.retweeted_tweet and tweet_.retweeted_tweet.id == tweet_id:
+                raise AlreadyRetweeted
+
+    async def _repost_tweet(
         self,
         tweet_id: int,
-        *,
-        search_duplicate: bool = True,
     ) -> Tweet:
         try:
             tweet = await self._repost(tweet_id)
+
         except HTTPException as exc:
-            if (
-                search_duplicate and 327 in exc.error_codes  # duplicate retweet (You have already retweeted this Tweet)
-            ):
-                tweets = await self.request_tweets(self.account.id)
-                duplicate_tweet = None
-                for tweet_ in tweets:  # type: Tweet
-                    if tweet_.retweeted_tweet and tweet_.retweeted_tweet.id == tweet_id:
-                        duplicate_tweet = tweet_
-
-                if not duplicate_tweet:
-                    raise FailedToFindDuplicatePost(f"Couldn't find a post duplicate in the next 20 posts")
-
-                tweet = duplicate_tweet
-
+            if 327 in exc.error_codes:
+                raise FailedToFindDuplicatePost(f"Couldn't find a post duplicate in the next 20 posts")
             else:
                 raise
 
@@ -625,8 +625,6 @@ class Client(BaseHTTPClient):
     async def repost(
         self,
         tweet_id: int,
-        *,
-        search_duplicate: bool = True,
     ) -> Tweet:
         """
         Repost (retweet)
@@ -635,7 +633,8 @@ class Client(BaseHTTPClient):
 
         :return: Tweet
         """
-        return await self._repost_or_search_duplicate(tweet_id, search_duplicate=search_duplicate)
+        await self._search_duplicate_repost(tweet_id=tweet_id)
+        return await self._repost_tweet(tweet_id)
 
     async def like(self, tweet_id: int) -> bool:
         """
@@ -684,11 +683,11 @@ class Client(BaseHTTPClient):
 
     async def _tweet(
         self,
-        text: str = None,
+        text: str | None = None,
         *,
-        media_id: int | str = None,
-        tweet_id_to_reply: str | int = None,
-        attachment_url: str = None,
+        media_id: int | str | None = None,
+        tweet_id_to_reply: str | int | None = None,
+        attachment_url: str | None = None,
     ) -> Tweet:
         url, query_id = self._action_to_url("CreateTweet")
         variables = {
@@ -740,14 +739,19 @@ class Client(BaseHTTPClient):
         tweet = Tweet.from_raw_data(response_json["data"]["create_tweet"]["tweet_results"]["result"])
         return tweet
 
-    async def _tweet_or_search_duplicate(
+    async def _search_duplicate_tweet(self, text: str):
+        tweets = await self.request_tweets()
+        for tweet_ in tweets:
+            if tweet_.text.startswith(text.strip()):
+                raise AlreadyTweeted
+
+    async def _tweet_tweet(
         self,
-        text: str = None,
+        text: str | None = None,
         *,
-        media_id: int | str = None,
-        tweet_id_to_reply: str | int = None,
-        attachment_url: str = None,
-        search_duplicate: bool = True,
+        media_id: int | str | None = None,
+        tweet_id_to_reply: str | int | None = None,
+        attachment_url: str | None = None,
     ) -> Tweet:
         try:
             tweet = await self._tweet(
@@ -758,18 +762,9 @@ class Client(BaseHTTPClient):
             )
         except HTTPException as exc:
             if (
-                search_duplicate and 187 in exc.error_codes  # duplicate tweet (Status is a duplicate)
+                187 in exc.error_codes  # duplicate tweet (Status is a duplicate)
             ):
-                tweets = await self.request_tweets()
-                duplicate_tweet = None
-                for tweet_ in tweets:
-                    if tweet_.text.startswith(text.strip()):
-                        duplicate_tweet = tweet_
-
-                if not duplicate_tweet:
-                    raise FailedToFindDuplicatePost(f"Couldn't find a post duplicate in the next 20 posts")
-                tweet = duplicate_tweet
-
+                raise FailedToFindDuplicatePost(f"Couldn't find a post duplicate in the next 20 posts")
             else:
                 raise
 
@@ -779,18 +774,17 @@ class Client(BaseHTTPClient):
         self,
         text: str,
         *,
-        media_id: int | str = None,
-        search_duplicate: bool = True,
+        media_id: int | str | None = None,
     ) -> Tweet:
         """
         Иногда может вернуть ошибку 404 (Not Found), если плохой прокси или по другим неизвестным причинам
 
         :return: Tweet
         """
-        return await self._tweet_or_search_duplicate(
+        await self._search_duplicate_tweet(text=text)
+        return await self._tweet_tweet(
             text,
             media_id=media_id,
-            search_duplicate=search_duplicate,
         )
 
     async def reply(
@@ -798,19 +792,18 @@ class Client(BaseHTTPClient):
         tweet_id: str | int,
         text: str,
         *,
-        media_id: int | str = None,
-        search_duplicate: bool = True,
+        media_id: int | str | None = None,
     ) -> Tweet:
         """
         Иногда может вернуть ошибку 404 (Not Found), если плохой прокси или по другим неизвестным причинам
 
         :return: Tweet
         """
-        return await self._tweet_or_search_duplicate(
+        await self._search_duplicate_tweet(text=text)
+        return await self._tweet_tweet(
             text,
             media_id=media_id,
             tweet_id_to_reply=tweet_id,
-            search_duplicate=search_duplicate,
         )
 
     async def quote(
@@ -818,19 +811,18 @@ class Client(BaseHTTPClient):
         tweet_url: str,
         text: str,
         *,
-        media_id: int | str = None,
-        search_duplicate: bool = True,
+        media_id: int | str | None = None,
     ) -> Tweet:
         """
         Иногда может вернуть ошибку 404 (Not Found), если плохой прокси или по другим неизвестным причинам
 
         :return: Tweet
         """
-        return await self._tweet_or_search_duplicate(
+        await self._search_duplicate_tweet(text=text)
+        return await self._tweet_tweet(
             text,
             media_id=media_id,
             attachment_url=tweet_url,
-            search_duplicate=search_duplicate,
         )
 
     async def vote(self, tweet_id: int | str, card_id: int | str, choice_number: int) -> dict:
@@ -853,7 +845,7 @@ class Client(BaseHTTPClient):
         action: str,
         user_id: int | str,
         count: int,
-        cursor: str = None,
+        cursor: str | None = None,
     ) -> list[User]:
         url, query_id = self._action_to_url(action)
         variables = {
@@ -1081,15 +1073,6 @@ class Client(BaseHTTPClient):
         :return: Image URL
         """
         return await self._update_profile_image("banner", media_id)
-
-    async def change_name(self, name: str) -> bool:
-        url = "https://api.x.com/1.1/account/update_profile.json"
-        payload = {"name": name}
-        response, data = await self.request("POST", url, data=payload)
-        new_name = data["name"]
-        changed = new_name == name
-        self.account.name = name
-        return changed
 
     async def change_username(self, username: str) -> bool:
         url = "https://x.com/i/api/1.1/account/settings.json"

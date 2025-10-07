@@ -7,7 +7,7 @@ from loguru import logger
 
 import libs.baseAsyncSession as BaseAsyncSession
 import libs.twitter as twitter
-from libs.twitter.errors import AccountLocked, AccountNotFound, AccountSuspended, BadAccountToken
+from libs.twitter.errors import AccountLocked, AccountNotFound, AccountSuspended, AlreadyRetweeted, AlreadyTweeted, BadAccountToken
 from libs.twitter.utils import remove_at_sign
 from utils.browser import Browser
 from utils.db_api.models import Wallet
@@ -240,16 +240,19 @@ class TwitterClient:
             if not initialize:
                 raise Exception("Can't initialize twitter client")
         # Post the tweet
-        tweet = await self.twitter_client.tweet(text)
+        try:
+            tweet = await self.twitter_client.tweet(text)
 
-        if tweet:
-            logger.success(f"{self.user} Tweet posted (ID: {tweet.id})")
-            return tweet
-        else:
-            logger.warning(f"{self.user} Failed to post tweet")
-            return None
+            if tweet:
+                logger.success(f"{self.user} Tweet posted (ID: {tweet.id})")
+                return tweet
+            else:
+                logger.warning(f"{self.user} Failed to post tweet")
+                return None
+        except AlreadyTweeted as e:
+            return str(e)
 
-    async def retweet(self, tweet_id: int) -> bool:
+    async def retweet(self, tweet_id: int) -> bool | str:
         """
         Retweets the specified tweet
 
@@ -266,16 +269,21 @@ class TwitterClient:
                 raise Exception("Can't initialize twitter client")
 
         # Perform retweet
-        retweet_id = await self.twitter_client.repost(tweet_id)
+        try:
+            retweet_id = await self.twitter_client.repost(tweet_id)
 
-        if retweet_id:
-            logger.success(f"{self.user} Retweet successful")
-            return True
-        else:
-            logger.warning(f"{self.user} Failed to retweet")
-            return False
+            if retweet_id:
+                logger.success(f"{self.user} Retweet successful")
+                return f"Retweeted {retweet_id}"
 
-    async def reply(self, tweet_id: int, reply_text: str) -> bool:
+            else:
+                logger.warning(f"{self.user} Failed to retweet")
+                return False
+
+        except AlreadyRetweeted as e:
+            return str(e)
+
+    async def reply(self, tweet_id: int, reply_text: str) -> bool | str:
         """
         Reply the specified tweet
 
@@ -291,14 +299,17 @@ class TwitterClient:
             if not initialize:
                 raise Exception("Can't initialize twitter client")
 
-        reply_id = await self.twitter_client.reply(tweet_id=tweet_id, text=reply_text)
+        try:
+            reply_id = await self.twitter_client.reply(tweet_id=tweet_id, text=reply_text)
 
-        if reply_id:
-            logger.success(f"{self.user} Reply successful {reply_id}")
-            return True
-        else:
-            logger.warning(f"{self.user} Failed to reply ")
-            return False
+            if reply_id:
+                logger.success(f"{self.user} Reply successful {reply_id}")
+                return True
+            else:
+                logger.warning(f"{self.user} Failed to reply ")
+                return False
+        except AlreadyTweeted as e:
+            return str(e)
 
     async def like_tweet(self, tweet_id: int) -> bool:
         """
@@ -324,57 +335,6 @@ class TwitterClient:
             return True
         else:
             logger.warning(f"{self.user} Failed to like")
-            return False
-
-    async def change_name(self, name: str) -> bool:
-        """
-        Change name
-
-        Args:
-            name: New name for account
-
-        Returns:
-            Success status
-        """
-
-        if not self.twitter_client:
-            initialize = await self.initialize()
-            if not initialize:
-                raise Exception("Can't initialize twitter client")
-
-        logger.debug(self.twitter_account.name)
-        result = await self.twitter_client.change_name(name)
-
-        if result:
-            logger.success(f"{self.user} username change to {name} successful")
-            return True
-        else:
-            logger.warning(f"{self.user} Failed change to {name} username")
-            return False
-
-    async def change_username(self, username: str) -> bool:
-        """
-        Change username
-
-        Args:
-            username: New username for account
-
-        Returns:
-            Success status
-        """
-
-        if not self.twitter_client:
-            initialize = await self.initialize()
-            if not initialize:
-                raise Exception("Can't initialize twitter client")
-
-        username = await self.twitter_client.change_username(username)
-
-        if username:
-            logger.success(f"{self.user} username change to {username} successful")
-            return True
-        else:
-            logger.warning(f"{self.user} Failed change to {username} username")
             return False
 
     async def connect_twitter_to_site_oauth(self, twitter_auth_url: str) -> TwitterOauthData:
@@ -432,7 +392,10 @@ class TwitterClient:
         )
 
         return TwitterOauthData(
-            auth_token=oauth_token, state_verifier_token=oauth_verifer, callback_url=redirect_url, callback_response=resp
+            auth_token=oauth_token,
+            state_verifier_token=oauth_verifer,
+            callback_url=redirect_url,
+            callback_response=resp,
         )
 
     async def connect_twitter_to_site_oauth2(self, twitter_auth_url: str) -> TwitterOauthData:
