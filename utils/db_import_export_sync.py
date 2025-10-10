@@ -1,3 +1,4 @@
+import csv
 import os
 from types import SimpleNamespace
 from typing import Dict, List, Optional
@@ -235,30 +236,37 @@ class Export:
     }
 
     @staticmethod
-    def _write_lines(filename: str, lines: List[Optional[str]]) -> None:
-        path = os.path.join(FILES_DIR, filename)
-        with open(path, "w", encoding="utf-8") as f:
-            for line in lines:
-                f.write((line or "") + "\n")
-
-    @staticmethod
-    async def wallets_to_txt() -> None:
+    async def data_to_csv() -> None:
         wallets: List[Wallet] = db.all(Wallet)
 
         if not wallets:
             logger.warning("Export: no wallets in db, skip....")
             return
 
-        buf = {key: [] for key in Export._FILES.keys()}
-
+        keys_set = set()
         for w in wallets:
-            buf["proxy"].append(w.proxy or "")
-            buf["twitter_token"].append(w.twitter_token or "")
-            buf["email_data"].append(w.email_data or "")
-            buf["discord_token"].append(w.discord_token or "")
-            buf["discord_proxy"].append(w.discord_proxy or "")
+            for k in getattr(w, "__dict__", {}).keys():
+                if not k.startswith("_"):
+                    keys_set.add(k)
 
-        for field, filename in Export._FILES.items():
-            Export._write_lines(filename, buf[field])
+        preferred = [
+            "id",
+            "address",
+            "private_key",
+            "proxy",
+            "twitter_token",
+        ]
 
-        logger.success(f"Export: exported {len(wallets)} wallets in {FILES_DIR}")
+        fieldnames = [k for k in preferred if k in keys_set] + sorted(k for k in keys_set if k not in preferred)
+
+        path = os.path.join(FILES_DIR, "export_data.csv")
+
+        with open(path, "w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+            writer.writeheader()
+
+            for w in wallets:
+                row = {k: v for k, v in getattr(w, "__dict__", {}).items() if not k.startswith("_")}
+                writer.writerow(row)
+
+        logger.success(f"Export: Database to CSV | Wallets exported: {len(wallets)} | Path: {path}")
