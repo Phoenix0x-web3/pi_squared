@@ -9,6 +9,7 @@ from data.settings import Settings
 from modules.game.clicker import PiClicker
 from modules.tasks.quests_client import QuestsClient
 from modules.tasks.authorization import AuthClient
+from modules.tasks.wallet import WalletClient
 from utils.db_api.models import Wallet
 from utils.logs_decorator import controller_log
 from utils.twitter.twitter_client import TwitterClient
@@ -32,6 +33,7 @@ class Controller:
         
         self.auth_client = AuthClient(user=self.wallet)
         self.quests_client = QuestsClient(user=self.wallet)
+        self.wallet_clinet = WalletClient(user=self.wallet)
 
     async def register(self):
         return await self.auth_client.login()
