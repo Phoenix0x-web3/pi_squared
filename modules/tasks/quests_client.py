@@ -338,3 +338,9 @@ class QuestsClient(BaseHttpClient):
         else:
             logger.warning(f"{self.user} can't connect discord to site")
             return False
+
+    async def get_nonce(self):
+        pass
+
+    async def connect_wallet(self):
+        pass
