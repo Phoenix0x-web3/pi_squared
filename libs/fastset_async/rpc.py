@@ -19,6 +19,7 @@ class BaseAsyncSession(requests.AsyncSession):
     def user_agent(self) -> str:
         return self.headers.get("user-agent", "")
 
+
 class RPC:
     def __init__(self, *, proxy: str | None = None, timeout: int = 15, base_headers: dict | None = None):
         self.async_session: BaseAsyncSession | None = None

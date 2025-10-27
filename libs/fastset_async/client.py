@@ -24,10 +24,18 @@ def _jsonable(obj: Any) -> Any:
         return [_jsonable(v) for v in obj]
     return obj
 
+
 class FastSetClient:
     base_headers = {"Content-Type": "application/json", "Accept": "application/json"}
 
-    def __init__(self, private_key: str | None = None, rpc_url: str = FASTSET_DEFAULT_RPC, *, timeout: int = FASTSET_TIMEOUT, proxy: str | None = None):
+    def __init__(
+        self,
+        private_key: str | None = None,
+        rpc_url: str = FASTSET_DEFAULT_RPC,
+        *,
+        timeout: int = FASTSET_TIMEOUT,
+        proxy: str | None = None,
+    ):
         super().__init__()
         self.rpc_url = rpc_url
         self.timeout = timeout
@@ -35,6 +43,7 @@ class FastSetClient:
         self._rid = 0
         self.account = self._build_account(private_key) if private_key else self._build_account(private_key=os.urandom(32).hex())
         from .transactions import FastSetTransactions
+
         self.wallet = Wallet(self)
         self.transactions = FastSetTransactions(self)
 

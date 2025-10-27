@@ -11,7 +11,9 @@ class Wallet:
     def __init__(self, client):
         self.client = client
 
-    async def get_account_info(self, address_set: str | None = None, *, token_balances_filter: list[str] | None = None, certificate_by_nonce: int | None = None) -> dict:
+    async def get_account_info(
+        self, address_set: str | None = None, *, token_balances_filter: list[str] | None = None, certificate_by_nonce: int | None = None
+    ) -> dict:
         addr = address_set or self.client.account.address
         addr_bytes = b32.decode(addr, HRP)
         params: dict[str, Any] = {"address": list(addr_bytes)}

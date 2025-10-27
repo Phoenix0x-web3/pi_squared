@@ -161,9 +161,7 @@ async def reconnect_twitter(wallet):
     await controller.reconnect_twitter()
 
 
-
 async def connect_wallet(wallet):
-
     await random_sleep_before_start(wallet=wallet)
 
     controller = Controller(wallet=wallet)

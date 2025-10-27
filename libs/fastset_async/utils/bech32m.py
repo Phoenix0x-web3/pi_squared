@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 _BECH32_ALPHABET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
-_BECH32M_CONST = 0x2bc830a3
+_BECH32M_CONST = 0x2BC830A3
+
 
 def _polymod(vals: list[int]) -> int:
     chk = 1
-    GEN = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3]
+    GEN = [0x3B6A57B2, 0x26508E6D, 0x1EA119FA, 0x3D4233DD, 0x2A1462B3]
     for v in vals:
         b = chk >> 25
         chk = ((chk & 0x1FFFFFF) << 5) ^ v
@@ -14,13 +15,16 @@ def _polymod(vals: list[int]) -> int:
                 chk ^= GEN[i]
     return chk
 
+
 def _hrp_expand(hrp: str) -> list[int]:
     return [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
+
 
 def _create_checksum(hrp: str, data: list[int]) -> list[int]:
     vals = _hrp_expand(hrp) + data
     polymod = _polymod(vals + [0, 0, 0, 0, 0, 0]) ^ _BECH32M_CONST
     return [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
+
 
 def _convertbits(data: bytes | list[int], from_bits: int, to_bits: int, *, pad: bool) -> bytes:
     acc = 0
@@ -43,11 +47,13 @@ def _convertbits(data: bytes | list[int], from_bits: int, to_bits: int, *, pad: 
         raise ValueError("invalid padding")
     return bytes(ret)
 
+
 def encode(hrp: str, payload32: bytes) -> str:
     words = _convertbits(payload32, 8, 5, pad=True)
     data = list(words)
     checksum = _create_checksum(hrp, data)
     return f"{hrp}1{''.join(_BECH32_ALPHABET[d] for d in data + checksum)}"
+
 
 def decode(addr: str, expected_hrp: str) -> bytes:
     s = addr.lower()

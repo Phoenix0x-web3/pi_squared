@@ -31,11 +31,19 @@ class Account:
         return self.public_key.hex()
 
     async def sign_message(self, message: bytes | str, *, hex_message: bool = False) -> bytes:
-        data = bytes.fromhex(message) if (isinstance(message, str) and hex_message) else (message.encode("utf-8") if isinstance(message, str) else message)
+        data = (
+            bytes.fromhex(message)
+            if (isinstance(message, str) and hex_message)
+            else (message.encode("utf-8") if isinstance(message, str) else message)
+        )
         return SigningKey(self.private_key).sign(data).signature
 
     async def verify_signature(self, message: bytes | str, signature: bytes | str, *, hex_message: bool = False) -> bool:
-        data = bytes.fromhex(message) if (isinstance(message, str) and hex_message) else (message.encode("utf-8") if isinstance(message, str) else message)
+        data = (
+            bytes.fromhex(message)
+            if (isinstance(message, str) and hex_message)
+            else (message.encode("utf-8") if isinstance(message, str) else message)
+        )
         sig = bytes.fromhex(signature) if isinstance(signature, str) else signature
         try:
             VerifyKey(self.public_key).verify(data, sig)

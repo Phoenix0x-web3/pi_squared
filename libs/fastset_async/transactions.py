@@ -17,6 +17,7 @@ class TokenTransfer:
     amount_hex: str
     user_data: bytes | None = None
 
+
 @dataclass(slots=True)
 class TokenCreation:
     token_name: str
@@ -24,6 +25,7 @@ class TokenCreation:
     initial_amount_hex: str
     mints: list[bytes]
     user_data: bytes | None = None
+
 
 @dataclass(slots=True)
 class Transaction:
@@ -33,12 +35,14 @@ class Transaction:
     timestamp_nanos: int
     claim: TokenTransfer | TokenCreation
 
+
 def bcs_serialize_token_transfer(claim: TokenTransfer) -> bytes:
     return B.concat(
         B.bytes32(claim.token_id),
         B.u256_from_hex_le(claim.amount_hex),
         B.option_bytes32(claim.user_data),
     )
+
 
 def bcs_serialize_token_creation(claim: TokenCreation) -> bytes:
     return B.concat(
@@ -48,6 +52,7 @@ def bcs_serialize_token_creation(claim: TokenCreation) -> bytes:
         B.vec([B.bytes32(pk) for pk in claim.mints]),
         B.option_bytes32(claim.user_data),
     )
+
 
 def bcs_serialize_transaction(tx: Transaction) -> bytes:
     sender = B.bytes32(tx.sender_pubkey)
@@ -60,14 +65,17 @@ def bcs_serialize_transaction(tx: Transaction) -> bytes:
         claim = B.enum_bcs(1, bcs_serialize_token_creation(tx.claim))
     return B.concat(sender, recipient_fastset, nonce, ts, claim)
 
+
 @dataclass(slots=True)
 class SignedTransaction:
     tx: Transaction
     signature: bytes
 
+
 @dataclass(slots=True)
 class TxCertificate:
     raw: dict
+
 
 class FastSetTransactions:
     def __init__(self, client):
