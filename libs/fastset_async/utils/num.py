@@ -31,3 +31,6 @@ def to_hex_noprefix(value: int | str) -> str:
     if _HEX_RE.fullmatch(s):
         return s
     raise ValueError("invalid numeric value")
+
+def _hex_noprefix(b: bytes) -> str:
+    return b.hex()

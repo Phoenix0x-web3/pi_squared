@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from nacl.signing import SigningKey, VerifyKey
+
 from nacl.exceptions import BadSignatureError
+from nacl.signing import SigningKey, VerifyKey
+
 from .constants import HRP
 from .utils import bech32m as b32
+
 
 @dataclass(slots=True)
 class Account:

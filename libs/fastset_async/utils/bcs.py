@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 def u8(x: int) -> bytes:
     return int(x).to_bytes(1, "little", signed=False)
 
@@ -27,3 +28,23 @@ def enum_bcs(variant_index: int, payload: bytes) -> bytes:
 
 def concat(*parts: bytes) -> bytes:
     return b"".join(parts)
+
+def uleb128(x: int) -> bytes:
+    x = int(x)
+    out = bytearray()
+    while True:
+        b = x & 0x7F
+        x >>= 7
+        if x:
+            out.append(b | 0x80)
+        else:
+            out.append(b)
+            break
+    return bytes(out)
+
+def bcs_str(s: str) -> bytes:
+    b = s.encode("utf-8")
+    return uleb128(len(b)) + b
+
+def vec(items: list[bytes]) -> bytes:
+    return uleb128(len(items)) + b"".join(items)

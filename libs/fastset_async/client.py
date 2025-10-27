@@ -2,21 +2,22 @@ from __future__ import annotations
 
 import os
 from typing import Any
+
 from nacl.signing import SigningKey
+
+from .account import Account
 from .constants import FASTSET_DEFAULT_RPC, FASTSET_TIMEOUT, HRP
 from .exceptions import RPCError
-from .account import Account
-from .utils import bech32m as b32
 from .rpc import RPC
+from .utils import bech32m as b32
 from .wallet import Wallet
+
 
 def _jsonable(obj: Any) -> Any:
     if obj is None:
         return None
     if isinstance(obj, (bytes, bytearray)):
         return list(obj)
-    if isinstance(obj, int) and obj > (1 << 53):
-        return str(obj)
     if isinstance(obj, dict):
         return {k: _jsonable(v) for k, v in obj.items()}
     if isinstance(obj, list):

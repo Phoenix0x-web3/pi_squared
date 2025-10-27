@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from typing import Any
+
 from curl_cffi import requests
+
 
 class BaseAsyncSession(requests.AsyncSession):
     def __init__(self, proxy: str | None = None, **session_kwargs):

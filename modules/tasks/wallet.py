@@ -1,21 +1,16 @@
-import asyncio
 import random
 import re
 from datetime import datetime, timedelta
 
+from faker import Faker
 from loguru import logger
 
-from data.settings import Settings
 from libs.fastset_async.client import FastSetClient
 from utils.db_api.models import Wallet
-from utils.db_api.wallet_api import mark_discord_as_bad, update_discord_connect, update_points_and_top, db
-from utils.discord.discord import DiscordOAuth
+from utils.db_api.wallet_api import db
 from utils.logs_decorator import controller_log
-from utils.resource_manager import ResourceManager
-from utils.twitter.twitter_client import TwitterClient, TwitterStatuses
-from .authorization import AuthClient
 
-from .http_client import BaseHttpClient
+from .authorization import AuthClient
 
 
 class WalletClient:
@@ -58,7 +53,9 @@ class WalletClient:
             json_data=json_data,
             use_refresh_token=False,
             method="POST")
+
         logger.debug(data)
+
         if success and isinstance(data, dict):
             return 'Wallet Connected'
 
@@ -67,37 +64,62 @@ class WalletClient:
     @controller_log('Faucet')
     async def faucet(self):
 
-        time = datetime.now()
+        try:
+            faucet = await self.fastset_client.wallet.faucet_drip(
+                recipient_set=self.fastset_client.account.address,
+                amount=1000
+            )
 
-        balance = await self.fastset_client.wallet.get_balance()
-        logger.debug(f'{self.wallet} | Balance: {balance} SET')
+            cooldown_until = datetime.now() + timedelta(minutes=1440)
+            self.wallet.next_faucet_time = cooldown_until
 
-        if balance == 0:
-            try:
-                faucet = await self.fastset_client.wallet.faucet_drip(
-                    recipient_set=self.fastset_client.account.address,
-                    amount=1000
-                )
-                return f'Success Faucet 1000 SET {faucet}'
+            return f'Success Faucet 1000 SET'
 
-            except Exception as e:
-                cooldown = str(e)
-                match = re.search(r"cooldown time remaining:\s*(\d+)", cooldown)
+        except Exception as e:
+            cooldown = str(e)
+            match = re.search(r"cooldown time remaining:\s*(\d+)", cooldown)
 
-                if match:
-                    minutes = int(match.group(1))
-                    cooldown_until = datetime.now() + timedelta(minutes=minutes)
-                    self.wallet.next_faucet_time = cooldown_until
-                    db.commit()
+            if match:
+                minutes = int(match.group(1))
+                cooldown_until = datetime.now() + timedelta(minutes=minutes)
+                self.wallet.next_faucet_time = cooldown_until
+                db.commit()
 
-                    return f'Failed, faucet availible on {cooldown_until}'
+                return f'Failed, faucet availible on {cooldown_until}'
+            else:
+                return str(e)
 
-        #if self.wallet.next_faucet_time <= time:
-
-        return False
-
+    @controller_log('Send Tokens')
     async def send_tokens(self):
-        pass
+        balance = await self.fastset_client.wallet.get_balance()
+        percent = random.randint(1, 5)
+        amount = balance * percent // 100
 
+        send = await self.fastset_client.transactions.send_token_transfer(
+            recipient_address_set=self.fastset_client.account.address,
+            amount=amount
+        )
+
+        if send:
+            return f"Success send tokens to self: {self.fastset_client.account.address}"
+
+        return 'Failed'
+
+    @controller_log('Create Assets')
     async def mint_token(self):
-        pass
+        name = Faker().word()
+        length = random.randint(3, 6)
+
+        name = name[:length].upper()
+
+        mint = await self.fastset_client.transactions.create_token(
+            token_name=name,
+            decimals=18,
+            initial_amount=str(random.randint(3,10) * 10**random.randint(22, 26)),
+            mints_set_addresses=[],
+        )
+
+        if mint:
+            return f"Success created token {name}: {self.fastset_client.account.address}"
+
+        return 'Failed'

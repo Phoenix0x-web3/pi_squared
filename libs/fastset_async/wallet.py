@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from typing import Any, Optional
+
 from .constants import HRP
 from .utils import bech32m as b32
 from .utils.num import parse_int_maybe_hex, to_hex_noprefix
+
 
 class Wallet:
     def __init__(self, client):

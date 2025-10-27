@@ -87,6 +87,9 @@ async def activity(action: int):
     if action == 7:
         await execute(wallets, reconnect_twitter)
 
+    if action == 8:
+        await execute(wallets, connect_wallet)
+
 
 async def run_all_tasks(wallet):
     await random_sleep_before_start(wallet=wallet)
@@ -156,3 +159,13 @@ async def reconnect_twitter(wallet):
     controller = Controller(wallet=wallet)
 
     await controller.reconnect_twitter()
+
+
+
+async def connect_wallet(wallet):
+
+    await random_sleep_before_start(wallet=wallet)
+
+    controller = Controller(wallet=wallet)
+
+    await controller.wallet_actions()
