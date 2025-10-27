@@ -2,6 +2,7 @@ import asyncio
 import random
 
 import time, random
+from datetime import datetime
 
 from loguru import logger
 
@@ -9,13 +10,14 @@ from data.settings import Settings
 from modules.game.clicker import PiClicker
 from modules.tasks.quests_client import QuestsClient
 from modules.tasks.authorization import AuthClient
+from modules.tasks.wallet import WalletClient
 from utils.db_api.models import Wallet
+from utils.db_api.wallet_api import db
 from utils.logs_decorator import controller_log
 from utils.twitter.twitter_client import TwitterClient
 from modules.hs_form import HSForm
 
 BOX_SIZE_MAP = [
-    # {'BASE_X': 442, 'BASE_Y': 543, 'CONTAINER_PX': 276},
     # {'BASE_X': 415, 'BASE_Y': 410, 'CONTAINER_PX': 276},
     {'BASE_X': 895, 'BASE_Y': 269, 'CONTAINER_PX': 288},
     {'BASE_X': 557, 'BASE_Y': 161, 'CONTAINER_PX': 288},
@@ -32,6 +34,7 @@ class Controller:
         
         self.auth_client = AuthClient(user=self.wallet)
         self.quests_client = QuestsClient(user=self.wallet)
+        self.onchain = WalletClient(user=self.wallet)
 
     async def register(self):
         return await self.auth_client.login()
@@ -69,6 +72,10 @@ class Controller:
 
         games_to_play = random.randint(Settings().games_min, Settings().games_max)
         
+        if games_to_play == 0:
+            logger.info(f"{self.wallet} | {self.__controller__} | Clicker Handle | No games to play as per settings")
+            return True
+        
         # generate random clicks
         clicks_list = [random.randint(Settings().clicks_min, Settings().clicks_max) for _ in range(games_to_play)]
 
@@ -99,11 +106,15 @@ class Controller:
 
         if not session:
             return False
-
-        if random.random() < 0.60:  # 60% chance  
+        
+        if random.random() < 0.40:  # 40% chance  
             await self.quests_client.complete_quests(random_stop=True)
         else:
-            await self.handle_clicker()
+            actions = [self.wallet_actions, self.handle_clicker]
+            random.shuffle(actions)
+
+            for action in actions:
+                await action()
                 
         await self.quests_client.complete_quests()
 
@@ -136,3 +147,68 @@ class Controller:
                 logger.warning(f"{self.wallet} can't connect twitter")
                 return False
         return True
+
+    async def wallet_actions(self):
+
+        time = datetime.now()
+
+        await self.auth_client.login()
+
+        if not self.wallet.private_key:
+            self.wallet.private_key = self.onchain.fastset_client.account.private_key_hex()
+            db.commit()
+
+        try:
+            balance = await self.onchain.fastset_client.wallet.get_balance()
+
+            data = await self.auth_client.get_session()
+            if not data.get('user').get('extensionWalletAddress'):
+                connect_wallet = await self.onchain.connect_wallet()
+                logger.success(connect_wallet)
+
+            if balance == 0:
+                faucet = await self.onchain.faucet()
+                if 'Failed' not in faucet:
+                    logger.success(faucet)
+                    await asyncio.sleep(random.randint(5, 10))
+
+            if self.wallet.next_faucet_time:
+                if self.wallet.next_faucet_time <= time:
+                    faucet = await self.onchain.faucet()
+                    logger.success(faucet)
+                    await asyncio.sleep(random.randint(5, 10))
+
+            uncompleted_tasks = await self.quests_client.get_uncompleted_tasks()
+
+            for task in uncompleted_tasks:
+                if 'Create and transfer assets using FastSet wallet extension' in task['title']:
+                    transfer_to_self = await self.onchain.send_tokens()
+                    if 'Failed' not in transfer_to_self:
+                        logger.success(transfer_to_self)
+                        await asyncio.sleep(random.randint(5, 10))
+
+                    create_assets = await self.onchain.mint_token()
+                    if 'Failed' not in create_assets:
+                        logger.success(create_assets)
+                        await asyncio.sleep(random.randint(5, 10))
+
+
+            cube = random.randint(1, 7)
+
+            if cube == 2:
+                transfer_to_self = await self.onchain.send_tokens()
+                if 'Failed' not in transfer_to_self:
+                    logger.success(transfer_to_self)
+                    await asyncio.sleep(random.randint(5, 10))
+
+            if cube == 5:
+                create_assets = await self.onchain.mint_token()
+                if 'Failed' not in create_assets:
+                    logger.success(create_assets)
+                    await asyncio.sleep(random.randint(5, 10))
+
+            return 'Success Done wallet actions'
+
+        except Exception as e:
+            msg = f"{self.wallet} | Controller | Wallet Actions | Failed | {e}"
+            return msg
