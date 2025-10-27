@@ -20,10 +20,9 @@ class AuthClient(BaseHttpClient):
 
     @async_retry()
     async def login(self):
-        logger.info(f"{self.user} | {self.__module__} | starting authorize")
+        logger.debug(f"{self.user} | {self.__module__} | starting authorize")
         session = await self.get_session()
         if session:
-            logger.success(f"{self.user} | {self.__module__} | success authorize")
             return session
         self.mail_waiter = Mail(self.user)
         if not self.mail_waiter.authed:

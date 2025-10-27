@@ -56,6 +56,13 @@ class QuestsClient(BaseHttpClient):
                 else:
                     logger.error(f"{self.user} | {self.__module__} | can't complete click_link task {task_title}")
 
+            elif task.get("taskName") == "pisquared_query":
+                task_result = await self.do_task_request(task_guid=task_id)
+                if task_result:
+                    logger.success(f"{self.user} | {self.__module__} | Completed pisquared_query task {task_title}")
+                else:
+                    logger.debug(f"{self.user} | {self.__module__} | can't complete pisquared_query task {task_title}")
+
             elif task.get("taskName") == "twitter_username" and self.user.twitter_token:
                 if self.user.twitter_status != TwitterStatuses.ok:
                     delete_and_replace = await self.delete_twitter_replace_token()
@@ -338,3 +345,9 @@ class QuestsClient(BaseHttpClient):
         else:
             logger.warning(f"{self.user} can't connect discord to site")
             return False
+
+    async def get_nonce(self):
+        pass
+
+    async def connect_wallet(self):
+        pass

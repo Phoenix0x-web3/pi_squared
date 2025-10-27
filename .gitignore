@@ -3,7 +3,6 @@
 .git/*
 dev/*
 **/__pycache__/*
-new_wallets.csv
 *.db
 .env
 test_*
