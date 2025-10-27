@@ -73,6 +73,10 @@ class Controller:
 
         games_to_play = random.randint(Settings().games_min, Settings().games_max)
         
+        if games_to_play == 0:
+            logger.info(f"{self.wallet} | {self.__controller__} | Clicker Handle | No games to play as per settings")
+            return True
+        
         # generate random clicks
         clicks_list = [random.randint(Settings().clicks_min, Settings().clicks_max) for _ in range(games_to_play)]
 
@@ -103,12 +107,15 @@ class Controller:
 
         if not session:
             return False
-
-        if random.random() < 0.60:  # 60% chance  
+        
+        if random.random() < 0.40:  # 40% chance  
             await self.quests_client.complete_quests(random_stop=True)
         else:
-            await self.wallet_actions()
-            await self.handle_clicker()
+            actions = [self.wallet_actions, self.handle_clicker]
+            random.shuffle(actions)
+
+            for action in actions:
+                await action()
                 
         await self.quests_client.complete_quests()
 
@@ -186,17 +193,16 @@ class Controller:
                         logger.success(create_assets)
                         await asyncio.sleep(random.randint(5, 10))
 
-                #await self.quests_client.complete_quests()
 
-            kubik = random.randint(1, 7)
+            cube = random.randint(1, 7)
 
-            if kubik == 2:
+            if cube == 2:
                 transfer_to_self = await self.onchain.send_tokens()
                 if 'Failed' not in transfer_to_self:
                     logger.success(transfer_to_self)
                     await asyncio.sleep(random.randint(5, 10))
 
-            if kubik == 5:
+            if cube == 5:
                 create_assets = await self.onchain.mint_token()
                 if 'Failed' not in create_assets:
                     logger.success(create_assets)
