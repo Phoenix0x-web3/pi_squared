@@ -42,6 +42,8 @@ class Mail:
             imap_port = 993
             if "icloud" in self.mail_data:
                 imap_server = "imap.mail.me.com"
+            elif "rambler" in self.mail_data:
+                imap_server = "imap.rambler.ru"
             elif "gmx" in self.mail_data:
                 imap_server = "imap.gmx.com"
             else:
