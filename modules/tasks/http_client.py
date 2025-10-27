@@ -7,6 +7,7 @@ from curl_cffi import CurlError
 from loguru import logger
 
 from data.settings import Settings
+from libs.fastset_async.client import FastSetClient
 from utils.browser import Browser
 from utils.db_api.models import Wallet
 from utils.db_api.wallet_api import get_wallet_by_id, save_bearer_token, save_refresh_token
@@ -44,6 +45,7 @@ class BaseHttpClient:
             "Sec-Fetch-Site": "cross-site",
             "Priority": "u=0",
         }
+        self.fastset_client = FastSetClient(private_key=self.user.private_key, proxy=self.user.proxy)
 
     async def get_headers(self, additional_headers: Optional[Dict] = None):
         """
