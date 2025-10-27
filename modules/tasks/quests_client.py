@@ -62,7 +62,7 @@ class QuestsClient(BaseHttpClient):
                     logger.success(f"{self.user} | {self.__module__} | Completed pisquared_query task {task_title}")
                 else:
                     logger.debug(f"{self.user} | {self.__module__} | can't complete pisquared_query task {task_title}")
-                    
+
             elif task.get("taskName") == "twitter_username" and self.user.twitter_token:
                 if self.user.twitter_status != TwitterStatuses.ok:
                     delete_and_replace = await self.delete_twitter_replace_token()
