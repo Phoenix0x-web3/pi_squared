@@ -10,7 +10,7 @@ More info:
 
 ## PI Squared Network
 
-Pi Squared Network is building the Verifiable Settlement Layer (VSL) — a decentralized infrastructure for fast, scalable, and cryptographically verifiable transactions between applications, blockchains, and AI agents.
+Pi Squared Network is building the Verifiable Settlement Layer (VSL) — a decentralized infrastructure for fast, scalable, and cryptographically verifiable transactions between  applications, blockchains, and AI agents.
 
 ## Functionality
 - Register with email(icloud)
