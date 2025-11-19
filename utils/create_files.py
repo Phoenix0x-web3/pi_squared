@@ -16,6 +16,7 @@ REQUIRED_FILES = [
     "reserve_twitter.txt",
     "discord_tokens.txt",
     "discord_proxy.txt",
+    "evm_private_keys.txt",
 ]
 
 

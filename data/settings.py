@@ -13,7 +13,7 @@ class Settings(Singleton):
             json_data = yaml.safe_load(file) or {}
 
         self.check_git_updates = json_data.get("check_git_updates", True)
-        self.private_key_encryption = json_data.get("private_key_encryption", False)
+        self.private_key_encryption = json_data.get("private_key_encryption", True)
         self.threads = json_data.get("threads", 4)
         self.range_wallets_to_run = json_data.get("range_wallets_to_run", [])
         self.exact_wallets_to_run = json_data.get("exact_wallets_to_run", [])

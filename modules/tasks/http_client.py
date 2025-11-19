@@ -74,6 +74,7 @@ class BaseHttpClient:
         retries: int = 5,
         allow_redirects: bool = True,
         use_refresh_token: bool = True,
+        close_session: bool = True,
     ) -> Tuple[bool, Union[Dict, str]]:
         """
         Perform HTTP request with automatic captcha and proxy error handling
@@ -108,6 +109,7 @@ class BaseHttpClient:
             "cookies": self.cookies,
             "timeout": timeout,
             "allow_redirects": allow_redirects,
+            "close_session": close_session,
         }
         # Add optional parameters
         if json_data is not None:

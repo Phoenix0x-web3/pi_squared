@@ -50,7 +50,7 @@ class PiClicker:
     @async_retry()
     async def start_game_session(self):
         url = f"{self.BASE}/game-sessions/start"
-        r = await self.session.post(url=url, headers=self.base_headers, timeout=20)
+        r = await self.session.post(url=url, headers=self.base_headers, timeout=20, close_session=False)
 
         if not r.status_code <= 202:
             raise Exception(f"{r.status_code} | {r.text}")
@@ -82,7 +82,7 @@ class PiClicker:
         }
         url = f"{self.BASE}/game-sessions/{game_session_id}/click"
 
-        r = await self.session.post(url=url, headers=self.base_headers, json=json_data)
+        r = await self.session.post(url=url, headers=self.base_headers, json=json_data, close_session=False)
         if not r.status_code <= 202:
             raise Exception(f"{r.status_code} | {r.text}")
         try:
@@ -149,7 +149,6 @@ class PiClicker:
         logger.debug(f"{self.wallet} | {self.__module__} | click-stream stopped")
 
     async def _click_worker(self, wid: int) -> None:
-        local_browser = Browser(wallet=self.wallet)
         sid = self._session_id
         q = self._q
         if not sid or q is None:
@@ -159,7 +158,7 @@ class PiClicker:
             if item is self._STOP:
                 break
             try:
-                await self._click_via(local_browser, sid, item)
+                await self._click_via(self.session, sid, item)
                 logger.debug(f"{self.wallet} | {self.__module__} | send seq={item['seq']} ok")
             except Exception as e:
                 logger.debug(f"{self.wallet} | {self.__module__} | send seq={item['seq']} error: {e}")
@@ -177,7 +176,7 @@ class PiClicker:
             "y": item["y"],
             "timestamp": item["timestamp"],
         }
-        r = await browser.post(url=url, headers=self.base_headers, json=json_data)
+        r = await browser.post(url=url, headers=self.base_headers, json=json_data, close_session=False)
         if not r.status_code <= 202:
             raise Exception(f"{r.status_code} | {r.text}")
         r.json()

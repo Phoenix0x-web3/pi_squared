@@ -11,6 +11,8 @@ from modules.game.clicker import PiClicker
 from modules.tasks.quests_client import QuestsClient
 from modules.tasks.authorization import AuthClient
 from modules.tasks.wallet import WalletClient
+from modules.tasks.game_survivor import GameSurvivor
+from modules.tasks.omni_set import OmniClient
 from utils.db_api.models import Wallet
 from utils.db_api.wallet_api import db
 from utils.logs_decorator import controller_log
@@ -35,6 +37,8 @@ class Controller:
         self.auth_client = AuthClient(user=self.wallet)
         self.quests_client = QuestsClient(user=self.wallet)
         self.onchain = WalletClient(user=self.wallet)
+        self.game_survivor = GameSurvivor(user=self.wallet)
+        self.omni_client = OmniClient(user=self.wallet)
 
     async def register(self):
         return await self.auth_client.login()
@@ -49,6 +53,20 @@ class Controller:
         if not session:
             return False
         await self.handle_clicker( )
+
+    async def complete_survivor_game(self):
+        session = await self.register()
+        if session:
+            await self.game_survivor.complete_game()
+
+    async def complete_bridges(self):
+        if not self.wallet.evm_private_key:
+            logger.error(f"{self.wallet} doesn't have evm private key for bridges")
+            return False
+        actions = [lambda: self.omni_client.bridge_to_fastet("SET"), lambda: self.omni_client.bridge_to_evm("ETH")]
+        random.shuffle(actions)
+        for action in actions:
+            await action()
 
     @controller_log('PiClicker')
     async def clicker_controller(self, box: dict, clicks: int | None = None):
@@ -110,7 +128,7 @@ class Controller:
         if random.random() < 0.40:  # 40% chance  
             await self.quests_client.complete_quests(random_stop=True)
         else:
-            actions = [self.wallet_actions, self.handle_clicker]
+            actions = [self.wallet_actions, self.handle_clicker, self.complete_survivor_game]
             random.shuffle(actions)
 
             for action in actions:

@@ -9,6 +9,7 @@ from data.settings import Settings
 from functions.controller import Controller
 from utils.db_api.models import Wallet
 from utils.db_api.wallet_api import db
+from utils.encryption import check_encrypt_param
 from utils.twitter.twitter_client import TwitterStatuses
 
 
@@ -51,6 +52,10 @@ async def execute(wallets: List[Wallet], task_func, random_pause_wallet_after_co
 
 
 async def activity(action: int):
+    if not check_encrypt_param():
+        logger.error(f"Decryption Failed | Wrong Password")
+        return
+
     wallets = db.all(Wallet)
 
     range_wallets = Settings().range_wallets_to_run
@@ -90,6 +95,12 @@ async def activity(action: int):
     if action == 8:
         await execute(wallets, connect_wallet)
 
+    if action == 9:
+        await execute(wallets, complete_survivor_game)
+
+    if action == 10:
+        await execute(wallets, complete_bridges)
+
 
 async def run_all_tasks(wallet):
     await random_sleep_before_start(wallet=wallet)
@@ -113,6 +124,14 @@ async def complete_quests(wallet):
     controller = Controller(wallet=wallet)
 
     await controller.complete_quests()
+
+
+async def complete_survivor_game(wallet):
+    await random_sleep_before_start(wallet=wallet)
+
+    controller = Controller(wallet=wallet)
+
+    await controller.complete_survivor_game()
 
 
 async def run_clicker(wallet):
@@ -167,3 +186,11 @@ async def connect_wallet(wallet):
     controller = Controller(wallet=wallet)
 
     await controller.wallet_actions()
+
+
+async def complete_bridges(wallet):
+    await random_sleep_before_start(wallet=wallet)
+
+    controller = Controller(wallet=wallet)
+
+    await controller.complete_bridges()
