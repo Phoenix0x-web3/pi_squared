@@ -5,6 +5,9 @@ threads: 1
 #Number of retry
 retry: 3
 
+# Whether to encrypt private keys
+private_key_encryption: true
+
 #BY DEFAULT: [0,0] - all wallets
 #Example: [2, 6] will run wallets 2,3,4,5,6
 #[4,4] will run only wallet 4

@@ -21,30 +21,34 @@ class Browser:
             await self.async_session.close()
             self.async_session = None
 
-    async def get(self, **kwargs):
+    async def get(self, close_session: bool = True, **kwargs):
         await self._ensure_session()
         try:
             return await self.async_session.get(**kwargs)
         finally:
-            await self._close_session()
+            if close_session:
+                await self._close_session()
 
-    async def post(self, **kwargs):
+    async def post(self, close_session: bool = True, **kwargs):
         await self._ensure_session()
         try:
             return await self.async_session.post(**kwargs)
         finally:
-            await self._close_session()
+            if close_session:
+                await self._close_session()
 
-    async def put(self, **kwargs):
+    async def put(self, close_session: bool = True, **kwargs):
         await self._ensure_session()
         try:
             return await self.async_session.put(**kwargs)
         finally:
-            await self._close_session()
+            if close_session:
+                await self._close_session()
 
-    async def delete(self, **kwargs):
+    async def delete(self, close_session: bool = True, **kwargs):
         await self._ensure_session()
         try:
             return await self.async_session.delete(**kwargs)
         finally:
-            await self._close_session()
+            if close_session:
+                await self._close_session()

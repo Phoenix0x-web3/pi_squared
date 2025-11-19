@@ -11,6 +11,7 @@ from utils.resource_manager import ResourceManager
 from utils.twitter.twitter_client import TwitterClient, TwitterStatuses
 
 from .http_client import BaseHttpClient
+from .omni_set import OmniClient
 
 
 class QuestsClient(BaseHttpClient):
@@ -57,6 +58,22 @@ class QuestsClient(BaseHttpClient):
                     logger.error(f"{self.user} | {self.__module__} | can't complete click_link task {task_title}")
 
             elif task.get("taskName") == "pisquared_query":
+                if task.get("title") == "Deposit and withdraw ETH via OmniSet" and self.user.evm_private_key:
+                    try:
+                        omni_client = OmniClient(user=self.user)
+                        await omni_client.bridge_to_evm("ETH")
+                        await asyncio.sleep(30, 60)
+                    except Exception as e:
+                        logger.error(f"{self.user} can't complete {task.get('title')} Error: {e}")
+                        continue
+                elif task.get("title") == "Withdraw and Deposit SET asset via OmniSet" and self.user.evm_private_key:
+                    try:
+                        omni_client = OmniClient(user=self.user)
+                        await omni_client.bridge_to_fastet("SET")
+                        await asyncio.sleep(30, 60)
+                    except Exception as e:
+                        logger.error(f"{self.user} can't complete {task.get('title')} Error: {e}")
+                        continue
                 task_result = await self.do_task_request(task_guid=task_id)
                 if task_result:
                     logger.success(f"{self.user} | {self.__module__} | Completed pisquared_query task {task_title}")
