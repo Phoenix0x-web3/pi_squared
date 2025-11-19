@@ -1,5 +1,6 @@
 import csv
 import os
+import sys
 from types import SimpleNamespace
 from typing import Dict, List, Optional
 
@@ -8,6 +9,7 @@ from loguru import logger
 from data.config import FILES_DIR
 from utils.db_api.models import Wallet
 from utils.db_api.wallet_api import db, get_wallet_by_email_data
+from utils.encryption import check_encrypt_param, get_private_key, prk_encrypt
 
 
 def parse_proxy(proxy: str | None) -> Optional[str]:
@@ -66,6 +68,7 @@ def read_lines(path: str) -> List[str]:
 class Import:
     @staticmethod
     def parse_wallet_from_txt() -> List[Dict[str, Optional[str]]]:
+        evm_private_keys = read_lines("evm_private_keys.txt")
         proxies = read_lines("proxy.txt")
         twitter_tokens = read_lines("twitter_tokens.txt")
         email_data = read_lines("email_data.txt")
@@ -80,6 +83,7 @@ class Import:
                 {
                     "email_data": email_data[i],
                     "proxy": parse_proxy(pick_proxy(proxies, i)),
+                    "evm_private_key": evm_private_keys[i] if i < len(evm_private_keys) else None,
                     "twitter_token": twitter_tokens[i] if i < len(twitter_tokens) else None,
                     "discord_token": discord_tokens[i] if i < len(discord_tokens) else None,
                     "discord_proxy": parse_proxy(discord_proxies[i]) if i < len(discord_proxies) else None,
@@ -90,6 +94,7 @@ class Import:
 
     @staticmethod
     async def wallets():
+        check_encrypt_param(confirm=True)
         raw_wallets = Import.parse_wallet_from_txt()
 
         wallets = [SimpleNamespace(**w) for w in raw_wallets]
@@ -97,6 +102,15 @@ class Import:
         imported: list[Wallet] = []
         edited: list[Wallet] = []
         total = len(wallets)
+
+        check_wallets = db.all(Wallet, Wallet.evm_private_key != None)
+        if len(check_wallets) > 0:
+            try:
+                check_wallet = check_wallets[0]
+                get_private_key(check_wallet.evm_private_key)
+
+            except Exception as e:
+                sys.exit(f"Database not empty | You must use same password for new wallets | {e}")
 
         for wl in wallets:
             wallet_instance = get_wallet_by_email_data(wl.email_data)
@@ -124,20 +138,37 @@ class Import:
                     wallet_instance.discord_proxy = wl.discord_proxy
                     changed = True
 
+                if hasattr(wallet_instance, "evm_private_key") and wallet_instance.evm_private_key != wl.evm_private_key:
+                    decoded_private_key = get_private_key(wl.evm_private_key)
+                    wallet_instance.evm_private_key = (
+                        prk_encrypt(decoded_private_key) if not "gAAAA" in wl.evm_private_key else wl.evm_private_key
+                    )
+                    changed = True
+
                 if changed:
                     db.commit()
                     edited.append(wallet_instance)
+                    remove_line_from_file(wl.evm_private_key, "evm_private_keys.txt")
 
                 continue
 
+            evm_private_key = (
+                wl.evm_private_key
+                if not wl.evm_private_key
+                else prk_encrypt(wl.evm_private_key)
+                if not "gAAAA" in wl.evm_private_key
+                else wl.evm_private_key
+            )
             wallet_instance = Wallet(
                 proxy=wl.proxy,
                 twitter_token=wl.twitter_token,
                 discord_token=wl.discord_token,
                 email_data=wl.email_data,
                 discord_proxy=wl.discord_proxy,
+                evm_private_key=evm_private_key,
             )
 
+            remove_line_from_file(wl.evm_private_key, "evm_private_keys.txt")
             if not wallet_instance.twitter_token:
                 logger.warning(f"{wallet_instance.id} | Twitter Token not found, Twitter Action will be skipped")
 
@@ -153,6 +184,8 @@ class Import:
 class Sync:
     @staticmethod
     def parse_tokens_and_proxies_from_txt(wallets: List) -> List[Dict[str, Optional[str]]]:
+        email_data = read_lines("email_data.txt")
+        evm_private_keys = read_lines("evm_private_keys.txt")
         proxies = read_lines("proxy.txt")
         twitter_tokens = read_lines("twitter_tokens.txt")
         discord_tokens = read_lines("discord_tokens.txt")
@@ -160,21 +193,26 @@ class Sync:
 
         record_count = len(wallets)
 
-        wallets: List[Dict[str, Optional[str]]] = []
+        wallet_auxiliary: List[Dict[str, Optional[str]]] = []
         for i in range(record_count):
-            wallets.append(
+            wallet_auxiliary.append(
                 {
+                    "email_data": email_data[i],
                     "proxy": parse_proxy(pick_proxy(proxies, i)),
+                    "evm_private_key": evm_private_keys[i] if i < len(evm_private_keys) else None,
                     "twitter_token": twitter_tokens[i] if i < len(twitter_tokens) else None,
                     "discord_token": discord_tokens[i] if i < len(discord_tokens) else None,
                     "discord_proxy": parse_proxy(discord_proxies[i]) if i < len(discord_proxies) else None,
                 }
             )
 
-        return wallets
+        return wallet_auxiliary
 
     @staticmethod
     async def sync_wallets_with_tokens_and_proxies():
+        if not check_encrypt_param():
+            logger.error(f"Decryption Failed | Wrong Password")
+            return
         wallets = db.all(Wallet)
 
         if len(wallets) <= 0:
@@ -194,7 +232,7 @@ class Sync:
         logger.info(f"Start syncing wallets: {total}")
 
         edited: list[Wallet] = []
-        for wl in wallets:
+        for wl in wallet_auxiliary_data:
             wallet_instance = get_wallet_by_email_data(wl.email_data)
 
             if wallet_instance:
@@ -219,6 +257,13 @@ class Sync:
                     wallet_instance.discord_proxy = wallet_data.discord_proxy
                     changed = True
 
+                if hasattr(wallet_instance, "evm_private_key") and wallet_instance.evm_private_key != wl.evm_private_key:
+                    decoded_private_key = get_private_key(wl.evm_private_key)
+                    wallet_instance.evm_private_key = (
+                        prk_encrypt(decoded_private_key) if not "gAAAA" in wl.evm_private_key else wl.evm_private_key
+                    )
+                    changed = True
+
                 if changed:
                     db.commit()
                     edited.append(wallet_instance)
@@ -233,10 +278,15 @@ class Export:
         "email_data": "exported_email_data.txt",
         "discord_token": "exported_discord_tokens.txt",
         "discord_proxy": "exported_discord_proxy.txt",
+        "evm_private_key": "evm_private_keys.txt",
     }
 
     @staticmethod
     async def data_to_csv() -> None:
+        if not check_encrypt_param():
+            logger.error(f"Decryption Failed | Wrong Password")
+            return
+
         wallets: List[Wallet] = db.all(Wallet)
 
         if not wallets:
@@ -249,13 +299,7 @@ class Export:
                 if not k.startswith("_"):
                     keys_set.add(k)
 
-        preferred = [
-            "id",
-            "address",
-            "private_key",
-            "proxy",
-            "twitter_token",
-        ]
+        preferred = ["id", "address", "private_key", "proxy", "twitter_token", "evm_private_key"]
 
         fieldnames = [k for k in preferred if k in keys_set] + sorted(k for k in keys_set if k not in preferred)
 

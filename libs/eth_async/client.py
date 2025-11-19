@@ -4,9 +4,10 @@ import re
 import requests
 from eth_account.signers.local import LocalAccount
 from fake_useragent import UserAgent
-from utils.encryption import get_private_key
 from web3 import Web3
 from web3.eth import AsyncEth
+
+from utils.encryption import get_private_key
 
 from . import exceptions
 from .contracts import Contracts
@@ -52,7 +53,8 @@ class Client:
         if private_key is None:
             self.account = self.w3.eth.account.create(extra_entropy=str(random.randint(1, 999_999_999)))
         elif re.match(r"^gAAAA", private_key):
-            self.account = self.w3.eth.account.from_key(get_private_key(private_key))
+            private_key = get_private_key(private_key)
+            self.account = self.w3.eth.account.from_key(private_key)
         else:
             self.account = self.w3.eth.account.from_key(private_key=private_key)
 

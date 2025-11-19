@@ -344,7 +344,7 @@ class Networks:
 
     Avalanche = Network(
         name="avalanche",
-        rpc="https://rpc.ankr.com/avalanche/",
+        rpc="https://1rpc.io/avax/c",
         chain_id=43114,
         tx_type=2,
         coin_symbol="AVAX",
@@ -377,7 +377,7 @@ class Networks:
 
     Fantom = Network(
         name="fantom",
-        rpc="https://fantom.publicnode.com",
+        rpc="https://1rpc.io/ftm",
         chain_id=250,
         tx_type=0,
         coin_symbol="FTM",
@@ -410,7 +410,7 @@ class Networks:
 
     Gnosis = Network(
         name="gnosis",
-        rpc="https://rpc.ankr.com/gnosis",
+        rpc="https://0xrpc.io/gno",
         chain_id=100,
         tx_type=2,
         coin_symbol="xDAI",
@@ -421,7 +421,7 @@ class Networks:
 
     HECO = Network(
         name="heco",
-        rpc="https://http-mainnet.hecochain.com",
+        rpc="https://heco.drpc.org",
         chain_id=128,
         tx_type=2,
         coin_symbol="HECO",
@@ -441,9 +441,19 @@ class Networks:
         # api=API(key=config.HECO_API_KEY, url='https://api.hecoinfo.com/api', docs='https://hecoinfo.com/apis')
     )
 
+    LINEA = Network(
+        name="LINEA",
+        rpc=RPC_MAP["linea"],
+        chain_id=59144,
+        tx_type=2,
+        coin_symbol="ETH",
+        decimals=18,
+        explorer="https://lineascan.build/",
+    )
+
     Sepolia = Network(
         name="sepolia",
-        rpc="https://rpc.sepolia.org",
+        rpc=RPC_MAP["sepolia"],
         chain_id=11155111,
         tx_type=2,
         coin_symbol="ETH",
