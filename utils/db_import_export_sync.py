@@ -210,9 +210,12 @@ class Sync:
 
     @staticmethod
     async def sync_wallets_with_tokens_and_proxies():
-        if not check_encrypt_param():
+        # No need to check the password here, because the evm_private_key may not exist yet.
+
+        if not check_encrypt_param(confirm=False, check_password=False):
             logger.error(f"Decryption Failed | Wrong Password")
             return
+
         wallets = db.all(Wallet)
 
         if len(wallets) <= 0:
