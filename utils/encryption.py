@@ -69,7 +69,7 @@ def prk_encrypt(value: str) -> str:
     return value
 
 
-def check_encrypt_param(confirm: bool = False, attempts: int = 3):
+def check_encrypt_param(confirm: bool = False, check_password: bool = True, attempts: int = 3):
     if not Settings().private_key_encryption:
         return True
 
@@ -92,7 +92,8 @@ def check_encrypt_param(confirm: bool = False, attempts: int = 3):
         if check_password_wallet:
             try:
                 # Should raise a specific error on wrong key
-                get_private_key(check_password_wallet.evm_private_key)
+                if check_password:
+                    get_private_key(check_password_wallet.evm_private_key)
                 return True
             except Exception:
                 print(f"Invalid password (attempt {try_num}/{attempts})\n")
