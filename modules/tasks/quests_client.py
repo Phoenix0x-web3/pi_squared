@@ -1,6 +1,7 @@
 import asyncio
 import random
 import re
+from uuid import uuid4
 
 from loguru import logger
 
@@ -20,6 +21,11 @@ class QuestsClient(BaseHttpClient):
 
     async def complete_quests(self, random_stop: bool = False):
         uncompleted_tasks = await self.get_uncompleted_tasks()
+        if not uncompleted_tasks:
+            logger.success(f"{self.user} | {self.__module__} | already completed all available quests")
+            await self.get_and_update_points()
+            return True
+
         random.shuffle(uncompleted_tasks)
         total_play, best_score = await self.get_game_stats()
         random_quest_complete = random.randint(1, len(uncompleted_tasks))
@@ -56,6 +62,16 @@ class QuestsClient(BaseHttpClient):
                     logger.success(f"{self.user} | {self.__module__} | Completed click_link task {task_title}")
                 else:
                     logger.error(f"{self.user} | {self.__module__} | can't complete click_link task {task_title}")
+
+            elif task.get("taskName") == "create_media":
+                if task.get("title") == "Review the FastSet Wallet":
+                    # Example: "https://chromewebstore.google.com/reviews/e72e5f3e-982b-4a19-bca0-c416346475a0"
+                    extra_arguments = [f"https://chromewebstore.google.com/reviews/{uuid4()}"]
+                    task_result = await self.do_task_request(task_guid=task_id, extra_arguments=extra_arguments)
+                    if task_result:
+                        logger.success(f"{self.user} | {self.__module__} | Completed create_media task {task_title}")
+                    else:
+                        logger.error(f"{self.user} | {self.__module__} | can't complete create_media task {task_title}")
 
             elif task.get("taskName") == "pisquared_query":
                 if task.get("title") == "Deposit and withdraw ETH via OmniSet" and self.user.evm_private_key:
@@ -182,11 +198,12 @@ class QuestsClient(BaseHttpClient):
         available_tasks = await self.get_available_tasks()
         tasks_status = await self.get_tasks_status()
         count = 0
+        skip_tasks_status = ["SUCCESSFUL", "ERROR", "PENDING"]
         for i in available_tasks:
             for a in tasks_status:
                 if i["id"] == a["taskGuid"]:
                     count += 1
-                    if a["status"] != "SUCCESSFUL":
+                    if a["status"] not in skip_tasks_status:
                         uncompleted_tasks.append(i)
         return uncompleted_tasks
 

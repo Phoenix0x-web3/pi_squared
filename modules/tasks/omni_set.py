@@ -1,6 +1,7 @@
 import asyncio
 import random
 import time
+from datetime import datetime, timedelta
 
 from eth_utils.crypto import keccak
 from loguru import logger
@@ -12,6 +13,7 @@ from libs.fastset_async.client import FastSetClient
 from libs.fastset_async.utils.account import set_to_bytes
 from utils.browser import Browser
 from utils.db_api.models import Wallet
+from utils.db_api.wallet_api import db
 from utils.retry import async_retry
 
 from .http_client import BaseHttpClient
@@ -50,6 +52,22 @@ class OmniClient(BaseHttpClient):
 
         id_arr = list(bytes.fromhex(token_id.removeprefix("0x")))
         balance = await self.fastset_client.wallet.get_balance(token_balances_filter=[id_arr])
+        set_balance = await self.fastset_client.wallet.get_balance(
+            token_balances_filter=[
+                list(bytes.fromhex("0xfa575e7000000000000000000000000000000000000000000000000000000000".removeprefix("0x")))
+            ]
+        )
+        if set_balance < 2:
+            await self.fastset_client.wallet.faucet_drip(recipient_set=self.fastset_client.account.address, amount=1000)
+            logger.success(f"{self.user} success get faucet drip 1000 SET")
+            await asyncio.sleep(random.randint(10, 30))
+            balance = await self.fastset_client.wallet.get_balance(token_balances_filter=[id_arr])
+            cooldown_until = datetime.now() + timedelta(minutes=1440)
+            self.user.next_faucet_time = cooldown_until
+            db.commit()
+            if not balance:
+                raise Exception(f"No {token_withdraw} balance on FastSet after faucet drip")
+
         if float(TokenAmount(balance, wei=True).Ether) < 0.001 and token_withdraw == "ETH":
             await self.bridge_to_fastet(token_deposit="ETH")
             await asyncio.sleep(random.randint(10, 30))

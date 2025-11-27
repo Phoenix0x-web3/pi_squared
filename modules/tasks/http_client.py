@@ -189,7 +189,9 @@ class BaseHttpClient:
                         except Exception:
                             return False, "RATE_LIMIT"
 
-                    logger.error(f"{self.user} | {self.__module__} | received status {resp.status_code} for request {url}")
+                    logger.error(
+                        f"{self.user} | {self.__module__} | received status {resp.status_code} for request {url}. Response text: {response_text}"
+                    )
 
                     # Parse response for possible error JSON
                     try:
