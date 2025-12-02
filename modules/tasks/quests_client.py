@@ -198,7 +198,7 @@ class QuestsClient(BaseHttpClient):
         available_tasks = await self.get_available_tasks()
         tasks_status = await self.get_tasks_status()
         count = 0
-        skip_tasks_status = ["SUCCESSFUL", "ERROR", "PENDING"]
+        skip_tasks_status = ["SUCCESSFUL", "PENDING"]
         for i in available_tasks:
             for a in tasks_status:
                 if i["id"] == a["taskGuid"]:
