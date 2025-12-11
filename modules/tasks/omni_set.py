@@ -40,6 +40,7 @@ class OmniClient(BaseHttpClient):
         self.fastset_client = FastSetClient(private_key=user.private_key, proxy=user.proxy)
         self.evm_client = Client(private_key=user.evm_private_key)
         self.browser = Browser(wallet=user)
+        self.wallet = user
 
     @async_retry()
     async def bridge_to_evm(self, token_withdraw: str = "SET"):
