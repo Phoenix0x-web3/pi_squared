@@ -82,16 +82,15 @@ class QuestsClient(BaseHttpClient):
                     except Exception as e:
                         logger.error(f"{self.user} can't complete {task.get('title')} Error: {e}")
                         continue
-                else:
+                elif task.get("title") == "Withdraw and Deposit SET asset via OmniSet" and self.user.evm_private_key:
                     continue
-                # elif task.get("title") == "Withdraw and Deposit SET asset via OmniSet" and self.user.evm_private_key:
-                #     try:
-                #         omni_client = OmniClient(user=self.user)
-                #         await omni_client.bridge_to_fastet("SET")
-                #         await asyncio.sleep(30, 60)
-                #     except Exception as e:
-                #         logger.error(f"{self.user} can't complete {task.get('title')} Error: {e}")
-                #         continue
+                    # try:
+                    #     omni_client = OmniClient(user=self.user)
+                    #     await omni_client.bridge_to_fastet("SET")
+                    #     await asyncio.sleep(30, 60)
+                    # except Exception as e:
+                    #     logger.error(f"{self.user} can't complete {task.get('title')} Error: {e}")
+                    #     continue
                 task_result = await self.do_task_request(task_guid=task_id)
                 if task_result:
                     logger.success(f"{self.user} | {self.__module__} | Completed pisquared_query task {task_title}")
