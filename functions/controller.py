@@ -63,7 +63,8 @@ class Controller:
         if not self.wallet.evm_private_key:
             logger.error(f"{self.wallet} doesn't have evm private key for bridges")
             return False
-        actions = [lambda: self.omni_client.bridge_to_fastet("SET"), lambda: self.omni_client.bridge_to_evm("ETH")]
+        # actions = [lambda: self.omni_client.bridge_to_fastet("SET"), lambda: self.omni_client.bridge_to_evm("ETH")]
+        actions = [lambda: self.omni_client.bridge_to_evm("ETH")]
         random.shuffle(actions)
         for action in actions:
             await action()
