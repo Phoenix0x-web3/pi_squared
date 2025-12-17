@@ -31,7 +31,7 @@ bridge_abi = [
         "type": "function",
     }
 ]
-BRIDGE_CONTRACT = RawContract(title="BRIDGE", address="0xaDB4f3334825E645dD201de5CF1778a09515936f", abi=bridge_abi)
+BRIDGE_CONTRACT = RawContract(title="BRIDGE", address="0xaBe4A90B23738EE0d56425825cF20C63C578e75a", abi=bridge_abi)
 
 
 class OmniClient(BaseHttpClient):
@@ -48,7 +48,7 @@ class OmniClient(BaseHttpClient):
             token_id = "0xfa575e7000000000000000000000000000000000000000000000000000000000"
             evm_token_address = "0xc6d2bd6437655fbc6689bfc987e09846ac4367ed"
         else:
-            token_id = "0x37bb8861c49c6f59d869634557245b8640c2de6a2d3dffd6ad4065f6f67989f1"
+            token_id = "0x5ba616623179bd55a7733141255032f8e1328760021be96166d3bc145f21e63a"
             evm_token_address = "0xfff9976782d46cc05630d1f6ebab18b2324d6b14"
 
         id_arr = list(bytes.fromhex(token_id.removeprefix("0x")))
@@ -67,14 +67,14 @@ class OmniClient(BaseHttpClient):
             self.user.next_faucet_time = cooldown_until
             db.commit()
             if not balance:
-                raise Exception(f"No {token_withdraw} balance on FastSet after faucet drip")
+                raise Exception(f"{self.user} No {token_withdraw} balance on FastSet after faucet drip")
 
         if float(TokenAmount(balance, wei=True).Ether) < 0.001 and token_withdraw == "ETH":
             await self.bridge_to_fastet(token_deposit="ETH")
             await asyncio.sleep(random.randint(10, 30))
             balance = await self.fastset_client.wallet.get_balance(token_balances_filter=[id_arr])
             if not balance:
-                raise Exception(f"No {token_withdraw} balance on FastSet after deposit")
+                raise Exception(f"{self.user} No {token_withdraw} balance on FastSet after try deposit")
 
         if token_withdraw == "SET":
             balance = int(TokenAmount(amount=balance, wei=False).Ether)
@@ -200,7 +200,8 @@ class OmniClient(BaseHttpClient):
         if balance.Ether < 0.001:
             bridge = await self.gas_zip_bridge()
             if not bridge:
-                raise Exception(f"Balance Sepolia < 0.001 ETH and can't bridge to Sepolia Network!")
+                logger.warning(f"Failed {self.user} Balance Sepolia < 0.001 ETH and can't bridge to Sepolia Network!")
+                return False
             balance = await self.evm_client.wallet.balance()
         if token_deposit == "ETH":
             token = self.evm_client.w3.to_checksum_address("0x0000000000000000000000000000000000000000")
